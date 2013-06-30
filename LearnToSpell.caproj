@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<c2project>
+    <name>LearnToSpell</name>
+    <description></description>
+    <version>1.0.0.0</version>
+    <author>Georges Nguyen</author>
+    <author-email></author-email>
+    <author-website></author-website>
+    <app-id></app-id>
+    <unique-id>2h2br966cgjor</unique-id>
+    <saved-with-version>13200</saved-with-version>
+    <used-plugins>
+        <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
+        <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
+        <plugin author="Scirra" id="Sprite" version="1">Sprite</plugin>
+        <plugin author="Scirra" id="Text" version="1">Text</plugin>
+        <plugin author="Scirra" id="TiledBg" version="1">Tiled Background</plugin>
+        <plugin author="Zack0Wack0/Scirra" id="WebStorage" version="1">WebStorage</plugin>
+    </used-plugins>
+    <used-behaviors>
+        <behavior author="Scirra" id="Flash" version="1">Flash</behavior>
+    </used-behaviors>
+    <used-effects />
+    <configurations>
+        <configuration exporter-descname="HTML5" exporter-id="html5" name="HTML5" />
+    </configurations>
+    <window-size>
+        <width>640</width>
+        <height>480</height>
+    </window-size>
+    <pixel-rounding>0</pixel-rounding>
+    <first-layout>Main Menu</first-layout>
+    <use-loader-layout>0</use-loader-layout>
+    <configuration-settings>
+        <prop name="Clear background">Yes</prop>
+        <prop name="Enable WebGL">On</prop>
+        <prop name="Fullscreen in browser">Letterbox scale</prop>
+        <prop name="Hide address bar">No</prop>
+        <prop name="Loader style">Progress bar &amp; logo</prop>
+        <prop name="Pause on unfocus">No</prop>
+        <prop name="Preview browser">(default)</prop>
+        <prop name="Sampling">Linear</prop>
+        <prop name="Use iOS retina display">All devices</prop>
+    </configuration-settings>
+    <object-folder expanded="1">
+        <object-type name="Keyboard" sid="6495344646784686">
+            <plugin id="Keyboard" />
+        </object-type>
+        <object-type name="Mouse" sid="1523906898327422">
+            <plugin id="Mouse" />
+        </object-type>
+        <object-type name="Background" sid="973151775017948">
+            <plugin id="TiledBg" />
+            <texture />
+        </object-type>
+        <object-type name="Title" sid="7234717135728493">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="ClickToStart" sid="9758701637912802">
+            <plugin id="Text" />
+            <behaviors>
+                <behavior-type name="Flash" sid="4433650442582954">
+                    <behavior id="Flash" />
+                </behavior-type>
+            </behaviors>
+        </object-type>
+        <object-type name="Beginner" sid="4054180307694104">
+            <plugin id="Text" />
+            <container>
+                <type>Beginner</type>
+                <type>Standard</type>
+                <type>Advanced</type>
+            </container>
+        </object-type>
+        <object-type name="Standard" sid="3588225959430422">
+            <plugin id="Text" />
+            <container>
+                <type>Beginner</type>
+                <type>Standard</type>
+                <type>Advanced</type>
+            </container>
+        </object-type>
+        <object-type name="Advanced" sid="8790311536373218">
+            <plugin id="Text" />
+            <container>
+                <type>Beginner</type>
+                <type>Standard</type>
+                <type>Advanced</type>
+            </container>
+        </object-type>
+        <object-type name="WebStorage" sid="2154020367318233">
+            <plugin id="WebStorage" />
+        </object-type>
+        <object-type name="BeginnerBackground" sid="7900397938524524">
+            <plugin id="TiledBg" />
+            <texture />
+        </object-type>
+        <object-type name="BackToMainMenu" sid="9926120466859888">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="StandardBackground" sid="6061200970332558">
+            <plugin id="TiledBg" />
+            <texture />
+        </object-type>
+        <object-type name="AdvancedBackground" sid="5742972869243706">
+            <plugin id="TiledBg" />
+            <texture />
+        </object-type>
+        <object-type name="Sprite" sid="8743467970611327">
+            <plugin id="Sprite" />
+            <animation-folder expanded="1">
+                <animation framecount="1" loop="0" name="Default" pingpong="0" repeatcount="1" repeatto="0" sid="8837858931969075" speed="5">
+                    <frame duration="1" hotspotX="0.5" hotspotY="0.5">
+                        <collision-poly>
+                            <point x="0.1875" y="0.1875" />
+                            <point x="0.5" y="0" />
+                            <point x="0.8125" y="0.1875" />
+                            <point x="0.9375" y="0.5" />
+                            <point x="0.9375" y="0.9375" />
+                            <point x="0.5" y="1" />
+                            <point x="0.0625" y="0.9375" />
+                            <point x="0.0625" y="0.5" />
+                        </collision-poly>
+                    </frame>
+                </animation>
+            </animation-folder>
+        </object-type>
+    </object-folder>
+    <families />
+    <layout-folder expanded="1">
+        <layout>Main Menu.xml</layout>
+        <layout>Beginner.xml</layout>
+        <layout>Standard.xml</layout>
+        <layout>Advanced.xml</layout>
+    </layout-folder>
+    <event-folder expanded="1">
+        <event-sheet>Main Menu.xml</event-sheet>
+        <event-sheet>Beginner.xml</event-sheet>
+        <event-sheet>Standard.xml</event-sheet>
+        <event-sheet>Advanced.xml</event-sheet>
+    </event-folder>
+    <global-instances>
+        <global-instance type="Keyboard" uid="0" />
+        <global-instance type="Mouse" uid="1" />
+        <global-instance type="WebStorage" uid="8" />
+    </global-instances>
+    <sounds-folder expanded="1" />
+    <music-folder expanded="1" />
+    <files-folder expanded="1" />
+</c2project>
