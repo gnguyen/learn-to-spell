@@ -10,10 +10,12 @@
     <unique-id>2h2br966cgjor</unique-id>
     <saved-with-version>13200</saved-with-version>
     <used-plugins>
+        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
         <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
         <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
         <plugin author="Scirra" id="Sprite" version="1">Sprite</plugin>
         <plugin author="Scirra" id="Text" version="1">Text</plugin>
+        <plugin author="Scirra" id="TextBox" version="1">Text box</plugin>
         <plugin author="Scirra" id="TiledBg" version="1">Tiled Background</plugin>
         <plugin author="Zack0Wack0/Scirra" id="WebStorage" version="1">WebStorage</plugin>
     </used-plugins>
@@ -66,27 +68,12 @@
         </object-type>
         <object-type name="Beginner" sid="4054180307694104">
             <plugin id="Text" />
-            <container>
-                <type>Beginner</type>
-                <type>Standard</type>
-                <type>Advanced</type>
-            </container>
         </object-type>
         <object-type name="Standard" sid="3588225959430422">
             <plugin id="Text" />
-            <container>
-                <type>Beginner</type>
-                <type>Standard</type>
-                <type>Advanced</type>
-            </container>
         </object-type>
         <object-type name="Advanced" sid="8790311536373218">
             <plugin id="Text" />
-            <container>
-                <type>Beginner</type>
-                <type>Standard</type>
-                <type>Advanced</type>
-            </container>
         </object-type>
         <object-type name="WebStorage" sid="2154020367318233">
             <plugin id="WebStorage" />
@@ -106,7 +93,7 @@
             <plugin id="TiledBg" />
             <texture />
         </object-type>
-        <object-type name="Sprite" sid="8743467970611327">
+        <object-type name="LockImage" sid="8743467970611327">
             <plugin id="Sprite" />
             <animation-folder expanded="1">
                 <animation framecount="1" loop="0" name="Default" pingpong="0" repeatcount="1" repeatto="0" sid="8837858931969075" speed="5">
@@ -124,6 +111,80 @@
                     </frame>
                 </animation>
             </animation-folder>
+        </object-type>
+        <object-type global="1" name="BeginnerWords" sid="8814246877647187">
+            <plugin id="Arr" />
+        </object-type>
+        <object-type name="BeginnerInstructions" sid="7636218276191471">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="Begin" sid="2152527718231077">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="AppleImage" sid="4535695671272931">
+            <plugin id="Sprite" />
+            <animation-folder expanded="1">
+                <animation framecount="1" loop="0" name="Default" pingpong="0" repeatcount="1" repeatto="0" sid="8970463096901602" speed="5">
+                    <frame duration="1" hotspotX="0.5" hotspotY="0.5">
+                        <collision-poly>
+                            <point x="0.226563" y="0.226563" />
+                            <point x="0.5" y="0.101563" />
+                            <point x="0.78125" y="0.21875" />
+                            <point x="0.898438" y="0.5" />
+                            <point x="0.796875" y="0.796875" />
+                            <point x="0.5" y="0.960938" />
+                            <point x="0.21875" y="0.78125" />
+                            <point x="0.125" y="0.5" />
+                        </collision-poly>
+                    </frame>
+                </animation>
+            </animation-folder>
+        </object-type>
+        <object-type name="PlayerInput" sid="9333026536852124">
+            <plugin id="TextBox" />
+        </object-type>
+        <object-type name="BeginnerWordCount" sid="8271955147184603">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="ClockImage" sid="9759704158061912">
+            <plugin id="Sprite" />
+            <animation-folder expanded="1">
+                <animation framecount="1" loop="0" name="Default" pingpong="0" repeatcount="1" repeatto="0" sid="4974974195139125" speed="5">
+                    <frame duration="1" hotspotX="0.5" hotspotY="0.5">
+                        <collision-poly>
+                            <point x="0.0625" y="0.0625" />
+                            <point x="0.5" y="0.0625" />
+                            <point x="0.875" y="0.125" />
+                            <point x="0.9375" y="0.5" />
+                            <point x="0.8125" y="0.8125" />
+                            <point x="0.5" y="0.9375" />
+                            <point x="0.1875" y="0.8125" />
+                            <point x="0.0625" y="0.5" />
+                        </collision-poly>
+                    </frame>
+                </animation>
+            </animation-folder>
+        </object-type>
+        <object-type name="Timer" sid="1065941595177036">
+            <plugin id="Text" />
+        </object-type>
+        <object-type global="1" name="CompletedBeginnerWords" sid="3734837696605145">
+            <plugin id="Arr" />
+        </object-type>
+        <object-type name="CorrectText" sid="3289672873098343">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="Next" sid="4185973215680531">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="IncorrectText" sid="6356300181489671">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="TryAgain" sid="7017510506181737">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="BackToMenuPopup" sid="8878160066858025">
+            <plugin id="Text" />
         </object-type>
     </object-folder>
     <families />
