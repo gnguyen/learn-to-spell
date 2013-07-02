@@ -54,6 +54,9 @@
                 <action id="-15" name="Set visible" sid="5641989533322269" type="Begin">
                     <param id="0" name="Visibility">0</param>
                 </action>
+                <action id="-15" name="Set visible" sid="4884901705046828" type="BeginnerInstructions">
+                    <param id="0" name="Visibility">0</param>
+                </action>
                 <action id="-15" name="Set visible" sid="7213325090204721" type="BeginnerWordCount">
                     <param id="0" name="Visibility">1</param>
                 </action>
@@ -178,6 +181,16 @@
                             <param id="0" name="Variable">WordSuccess</param>
                             <param id="1" name="Value">0</param>
                         </action>
+                        <action id="-15" name="Set visible" sid="7860016451615871" type="AppleImage">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="1934772239414966" type="BananaImage">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="0" name="Set text" sid="4737281128092167" type="PlayerInput">
+                            <param id="0" name="Text">&quot;&quot;</param>
+                        </action>
+                        <action id="6" name="Set focused" sid="4074278712588095" type="PlayerInput" />
                     </actions>
                 </event-block>
                 <event-block sid="7977913963428273">
@@ -205,12 +218,12 @@
                         </condition>
                     </conditions>
                     <actions>
-                        <action id="-15" name="Set visible" sid="5448711740214802" type="AppleImage">
-                            <param id="0" name="Visibility">1</param>
-                        </action>
                         <action id="-9" name="Set value" sid="3928474745927649" type="System">
                             <param id="0" name="Variable">BeginnerTimer</param>
                             <param id="1" name="Value">BEGINNERMAXTIMER</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="5448711740214802" type="AppleImage">
+                            <param id="0" name="Visibility">1</param>
                         </action>
                     </actions>
                 </event-block>
@@ -226,6 +239,9 @@
                         <action id="-9" name="Set value" sid="2587760913642399" type="System">
                             <param id="0" name="Variable">BeginnerTimer</param>
                             <param id="1" name="Value">BEGINNERMAXTIMER</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="5381246771479372" type="BananaImage">
+                            <param id="0" name="Visibility">1</param>
                         </action>
                     </actions>
                 </event-block>
@@ -301,21 +317,33 @@
                 </event-block>
             </sub-events>
         </event-block>
-        <event-block any="1" sid="9873240410859671">
+        <event-block sid="9873240410859671">
             <conditions>
                 <condition id="6" name="On object clicked" sid="6183917733648884" type="Mouse">
                     <param id="0" name="Mouse button">0</param>
                     <param id="1" name="Click type">0</param>
                     <param id="2" name="Object clicked">Next</param>
                 </condition>
-                <condition id="6" name="On object clicked" sid="4230826597664868" type="Mouse">
+                <condition id="-9" name="Is visible" sid="826436705794157" type="Next" />
+            </conditions>
+            <actions>
+                <action id="-9" name="Set value" sid="1299432967622071" type="System">
+                    <param id="0" name="Variable">SetupNewCard</param>
+                    <param id="1" name="Value">1</param>
+                </action>
+            </actions>
+        </event-block>
+        <event-block sid="7475348836620637">
+            <conditions>
+                <condition id="6" name="On object clicked" sid="2376566354415558" type="Mouse">
                     <param id="0" name="Mouse button">0</param>
                     <param id="1" name="Click type">0</param>
                     <param id="2" name="Object clicked">TryAgain</param>
                 </condition>
+                <condition id="-9" name="Is visible" sid="2999235917389874" type="TryAgain" />
             </conditions>
             <actions>
-                <action id="-9" name="Set value" sid="1299432967622071" type="System">
+                <action id="-9" name="Set value" sid="8139073038845306" type="System">
                     <param id="0" name="Variable">SetupNewCard</param>
                     <param id="1" name="Value">1</param>
                 </action>
@@ -349,17 +377,45 @@
                     <param id="2" name="Value">1</param>
                 </condition>
             </conditions>
-            <actions>
-                <action id="-15" name="Set visible" sid="6483371197410454" type="BackToMenuPopup">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="-15" name="Set visible" sid="4663560575217982" type="CorrectText">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="-15" name="Set visible" sid="8268518247079155" type="Next">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-            </actions>
+            <actions />
+            <sub-events>
+                <event-block sid="9409865793893961">
+                    <conditions>
+                        <condition id="-14" name="Compare variable" sid="675660548501159" type="System">
+                            <param id="0" name="Variable">WordsCompleted</param>
+                            <param id="1" name="Comparison">2</param>
+                            <param id="2" name="Value">WORDSTOTAL</param>
+                        </condition>
+                    </conditions>
+                    <actions>
+                        <action id="-15" name="Set visible" sid="6483371197410454" type="BackToMenuPopup">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="4663560575217982" type="CorrectText">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="8268518247079155" type="Next">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                    </actions>
+                </event-block>
+                <event-block sid="7295116692588459">
+                    <conditions>
+                        <condition id="-22" name="Else" sid="3605005817801999" type="System" />
+                    </conditions>
+                    <actions>
+                        <action id="0" name="Set text" sid="4640339691707891" type="CorrectText">
+                            <param id="0" name="Text">&quot;All croertc!&quot;</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="5345331149655922" type="CorrectText">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="1859582342902099" type="BackToMenuPopup">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
         </event-block>
     </events>
 </c2eventsheet>

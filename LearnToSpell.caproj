@@ -186,6 +186,27 @@
         <object-type name="BackToMenuPopup" sid="8878160066858025">
             <plugin id="Text" />
         </object-type>
+        <object-type name="LockText" sid="4469739726019704">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="BananaImage" sid="5096296259833773">
+            <plugin id="Sprite" />
+            <animation-folder expanded="1">
+                <animation framecount="1" loop="0" name="Default" pingpong="0" repeatcount="1" repeatto="0" sid="3507131429940874" speed="5">
+                    <frame duration="1" hotspotX="0.5" hotspotY="0.5">
+                        <collision-poly>
+                            <point x="0.523438" y="0.523438" />
+                            <point x="0.476563" y="0.523438" />
+                            <point x="0.953125" y="0.5" />
+                            <point x="0.71875" y="0.71875" />
+                            <point x="0.5" y="0.765625" />
+                            <point x="0.273438" y="0.726563" />
+                            <point x="0.03125" y="0.5" />
+                        </collision-poly>
+                    </frame>
+                </animation>
+            </animation-folder>
+        </object-type>
     </object-folder>
     <families />
     <layout-folder expanded="1">

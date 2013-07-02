@@ -93,7 +93,7 @@
                 </instance>
                 <instance type="Beginner" uid="5">
                     <properties>
-                        <text>Beginner / Bgenienr</text>
+                        <text>Bgenienr</text>
                         <initial-visibility>Visible</initial-visibility>
                         <font>Arial,-24,400,0</font>
                         <color>0,0,0</color>
@@ -109,7 +109,7 @@
                         <x>320</x>
                         <y>200</y>
                         <z>0</z>
-                        <width>220</width>
+                        <width>120</width>
                         <height>40</height>
                         <depth>0</depth>
                         <hotspotX>0.5</hotspotX>
@@ -120,7 +120,7 @@
                 </instance>
                 <instance type="Standard" uid="6">
                     <properties>
-                        <text>Standard / Satdnrad</text>
+                        <text>Satdnrad</text>
                         <initial-visibility>Visible</initial-visibility>
                         <font>Arial,-24,400,0</font>
                         <color>0,0,0</color>
@@ -136,7 +136,7 @@
                         <x>320</x>
                         <y>260</y>
                         <z>0</z>
-                        <width>220</width>
+                        <width>120</width>
                         <height>40</height>
                         <depth>0</depth>
                         <hotspotX>0.5</hotspotX>
@@ -147,7 +147,7 @@
                 </instance>
                 <instance type="Advanced" uid="7">
                     <properties>
-                        <text>Advanced / Avdnaecd</text>
+                        <text>Avdnaecd</text>
                         <initial-visibility>Visible</initial-visibility>
                         <font>Arial,-24,400,0</font>
                         <color>0,0,0</color>
@@ -163,7 +163,7 @@
                         <x>320</x>
                         <y>320</y>
                         <z>0</z>
-                        <width>240</width>
+                        <width>120</width>
                         <height>40</height>
                         <depth>0</depth>
                         <hotspotX>0.5</hotspotX>
@@ -182,7 +182,7 @@
                     <blend-mode>0</blend-mode>
                     <effect-fallback>0</effect-fallback>
                     <world>
-                        <x>448</x>
+                        <x>400</x>
                         <y>318</y>
                         <z>0</z>
                         <width>16</width>
@@ -190,6 +190,33 @@
                         <depth>0</depth>
                         <hotspotX>0.5</hotspotX>
                         <hotspotY>0.5</hotspotY>
+                        <angle>0</angle>
+                        <opacity>1</opacity>
+                    </world>
+                </instance>
+                <instance type="LockText" uid="32">
+                    <properties>
+                        <text>Cmolptee Satdnrad to ulncok</text>
+                        <initial-visibility>Invisible</initial-visibility>
+                        <font>Arial,-13,400,0</font>
+                        <color>0,0,0</color>
+                        <horizontal-alignment>Left</horizontal-alignment>
+                        <vertical-alignment>Top</vertical-alignment>
+                        <hotspot>Top-left</hotspot>
+                        <wrapping>Word</wrapping>
+                        <line-height>0</line-height>
+                    </properties>
+                    <blend-mode>0</blend-mode>
+                    <effect-fallback>0</effect-fallback>
+                    <world>
+                        <x>416</x>
+                        <y>334</y>
+                        <z>0</z>
+                        <width>180</width>
+                        <height>20</height>
+                        <depth>0</depth>
+                        <hotspotX>0</hotspotX>
+                        <hotspotY>0</hotspotY>
                         <angle>0</angle>
                         <opacity>1</opacity>
                     </world>
@@ -213,7 +240,7 @@
             <instances>
                 <instance type="ClickToStart" uid="4">
                     <properties>
-                        <text>Click to start Cilkc to sattr</text>
+                        <text>Cilkc to sattr</text>
                         <initial-visibility>Invisible</initial-visibility>
                         <font>Arial,-27,400,0</font>
                         <color>0,0,0</color>
@@ -233,7 +260,7 @@
                         <y>280</y>
                         <z>0</z>
                         <width>180</width>
-                        <height>80</height>
+                        <height>36</height>
                         <depth>0</depth>
                         <hotspotX>0.5</hotspotX>
                         <hotspotY>0.5</hotspotY>

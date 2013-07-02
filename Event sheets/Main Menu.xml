@@ -162,5 +162,28 @@
                 </action>
             </actions>
         </event-block>
+        <event-block sid="5679982799297909">
+            <conditions>
+                <condition id="7" name="Cursor is over object" sid="7667509776499689" type="Mouse">
+                    <param id="0" name="Object">LockImage</param>
+                </condition>
+                <condition id="-9" name="Is visible" sid="6124107282209194" type="LockImage" />
+            </conditions>
+            <actions>
+                <action id="-15" name="Set visible" sid="1669046041969553" type="LockText">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+            </actions>
+        </event-block>
+        <event-block sid="2614696814405551">
+            <conditions>
+                <condition id="-22" name="Else" sid="4847341776777417" type="System" />
+            </conditions>
+            <actions>
+                <action id="-15" name="Set visible" sid="5456317994400919" type="LockText">
+                    <param id="0" name="Visibility">0</param>
+                </action>
+            </actions>
+        </event-block>
     </events>
 </c2eventsheet>
