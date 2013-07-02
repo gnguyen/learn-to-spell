@@ -4,33 +4,6 @@
     <name>Main Menu</name>
     <events>
         <variable constant="0" name="ClickStarted" sid="3578794167545708" static="0" type="number">0</variable>
-        <event-block sid="4041670526167097">
-            <conditions>
-                <condition id="-25" name="On loader layout complete" sid="6200800878681363" type="System" />
-            </conditions>
-            <actions>
-                <action id="3" name="Set at XY" sid="9968003909840186" type="BeginnerWords">
-                    <param id="0" name="X">0</param>
-                    <param id="1" name="Y">0</param>
-                    <param id="2" name="Value">&quot;apple&quot;</param>
-                </action>
-                <action id="3" name="Set at XY" sid="4836789903759004" type="BeginnerWords">
-                    <param id="0" name="X">0</param>
-                    <param id="1" name="Y">1</param>
-                    <param id="2" name="Value">&quot;appel&quot;</param>
-                </action>
-                <action id="3" name="Set at XY" sid="4361911993871798" type="BeginnerWords">
-                    <param id="0" name="X">1</param>
-                    <param id="1" name="Y">0</param>
-                    <param id="2" name="Value">&quot;banana&quot;</param>
-                </action>
-                <action id="3" name="Set at XY" sid="3530321918273438" type="BeginnerWords">
-                    <param id="0" name="X">1</param>
-                    <param id="1" name="Y">1</param>
-                    <param id="2" name="Value">&quot;bnanaa&quot;</param>
-                </action>
-            </actions>
-        </event-block>
         <event-block sid="294395083088814">
             <conditions>
                 <condition id="-2" name="On start of layout" sid="1843204963121193" type="System" />
