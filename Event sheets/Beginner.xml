@@ -14,7 +14,7 @@
         <variable constant="0" name="WordsCompleted" sid="6416639588095725" static="0" type="number">0</variable>
         <event-block sid="6806646088774059">
             <conditions>
-                <condition id="-25" name="On loader layout complete" sid="3595867070219477" type="System" />
+                <condition id="-2" name="On start of layout" sid="3595867070219477" type="System" />
             </conditions>
             <actions>
                 <action id="3" name="Set at XY" sid="4127584515132053" type="BeginnerWords">
@@ -150,7 +150,7 @@
                 </action>
             </actions>
         </event-block>
-        <event-block sid="9799986420100598">
+        <event-block collapsed="1" sid="9799986420100598">
             <conditions>
                 <condition id="-6" name="Every X seconds" sid="2845651760846231" type="System">
                     <param id="0" name="Interval (seconds)">1.0</param>
@@ -194,7 +194,7 @@
                 </event-block>
             </sub-events>
         </event-block>
-        <event-block sid="8361093078858741">
+        <event-block collapsed="1" sid="8361093078858741">
             <conditions>
                 <condition id="-14" name="Compare variable" sid="3141207383346189" type="System">
                     <param id="0" name="Variable">SetupNewCard</param>
@@ -386,6 +386,9 @@
                             <param id="0" name="Variable">InputText</param>
                             <param id="1" name="Value">lowercase(PlayerInput.Text)</param>
                         </action>
+                        <action id="0" name="Set text" sid="2073364493005902" type="PlayerInput">
+                            <param id="0" name="Text">&quot;&quot;</param>
+                        </action>
                     </actions>
                 </event-block>
                 <event-block sid="6705165728772405">
@@ -419,7 +422,17 @@
                     <conditions>
                         <condition id="-22" name="Else" sid="20527729295483" type="System" />
                     </conditions>
-                    <actions />
+                    <actions>
+                        <action id="-15" name="Set visible" sid="3761683237460343" type="CrossImage">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-16" name="Wait" sid="2650852530083379" type="System">
+                            <param id="0" name="Seconds">1.0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="6250308560351819" type="CrossImage">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                    </actions>
                 </event-block>
             </sub-events>
         </event-block>
@@ -475,7 +488,7 @@
                 </action>
             </actions>
         </event-block>
-        <event-block sid="6315463607272526">
+        <event-block collapsed="1" sid="6315463607272526">
             <conditions>
                 <condition id="-14" name="Compare variable" sid="486447974554505" type="System">
                     <param id="0" name="Variable">WordSuccess</param>
