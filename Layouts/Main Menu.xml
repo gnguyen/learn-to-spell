@@ -287,6 +287,13 @@
                 <depth>1</depth>
             </properties>
         </instance>
+        <instance type="StandardSentences" uid="47">
+            <properties>
+                <width>10</width>
+                <height>2</height>
+                <depth>1</depth>
+            </properties>
+        </instance>
     </nonworld-instances>
     <effects />
 </c2layout>

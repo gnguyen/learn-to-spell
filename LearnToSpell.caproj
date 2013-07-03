@@ -10,6 +10,7 @@
     <unique-id>2h2br966cgjor</unique-id>
     <saved-with-version>13200</saved-with-version>
     <used-plugins>
+        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
         <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
         <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
         <plugin author="Scirra" id="Sprite" version="1">Sprite</plugin>
@@ -17,7 +18,6 @@
         <plugin author="Scirra" id="TextBox" version="1">Text box</plugin>
         <plugin author="Scirra" id="TiledBg" version="1">Tiled Background</plugin>
         <plugin author="Zack0Wack0/Scirra" id="WebStorage" version="1">WebStorage</plugin>
-        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
     </used-plugins>
     <used-behaviors>
         <behavior author="Scirra" id="Flash" version="1">Flash</behavior>
@@ -143,7 +143,7 @@
         <object-type name="PlayerInput" sid="9333026536852124">
             <plugin id="TextBox" />
         </object-type>
-        <object-type name="BeginnerWordCount" sid="8271955147184603">
+        <object-type name="PhraseCount" sid="8271955147184603">
             <plugin id="Text" />
         </object-type>
         <object-type name="ClockImage" sid="9759704158061912">
@@ -183,7 +183,7 @@
         <object-type name="TryAgain" sid="7017510506181737">
             <plugin id="Text" />
         </object-type>
-        <object-type name="BackToMenuPopup" sid="8878160066858025">
+        <object-type name="BackToMainMenuPopup" sid="8878160066858025">
             <plugin id="Text" />
         </object-type>
         <object-type name="LockText" sid="4469739726019704">
@@ -282,6 +282,15 @@
                     </frame>
                 </animation>
             </animation-folder>
+        </object-type>
+        <object-type name="StandardInstructions" sid="5951226179393193">
+            <plugin id="Text" />
+        </object-type>
+        <object-type global="1" name="StandardSentences" sid="8646615830104989">
+            <plugin id="Arr" />
+        </object-type>
+        <object-type name="Prompt" sid="3491480786189266">
+            <plugin id="Text" />
         </object-type>
     </object-folder>
     <families />
