@@ -3,8 +3,8 @@
     <!--All the 'name' attributes are ignored by Construct 2 - they are there for readability only.-->
     <name>Standard</name>
     <events>
-        <variable constant="1" name="STANDARDMAXTIMER" sid="4157930343918855" static="0" type="number">60</variable>
-        <variable constant="1" name="STANDARDPHRASESTOTAL" sid="497394394626088" static="0" type="number">1</variable>
+        <variable constant="1" name="STANDARDMAXTIMER" sid="4157930343918855" static="0" type="number">30</variable>
+        <variable constant="1" name="STANDARDPHRASESTOTAL" sid="497394394626088" static="0" type="number">10</variable>
         <event-block sid="5946182323379769">
             <conditions>
                 <condition id="-2" name="On start of layout" sid="4784150854343078" type="System" />
@@ -19,6 +19,96 @@
                     <param id="0" name="X">0</param>
                     <param id="1" name="Y">1</param>
                     <param id="2" name="Value">&quot;Teh qiukc bornw fxo jmuepd oevr teh lzay dgo&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="2754655971889357" type="StandardSentences">
+                    <param id="0" name="X">1</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Keep calm and carry on&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="7546058512988155" type="StandardSentences">
+                    <param id="0" name="X">1</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Keep clam adn crayr on&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="3063459353802178" type="StandardSentences">
+                    <param id="0" name="X">2</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;All men are created equal&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="2828137945585697" type="StandardSentences">
+                    <param id="0" name="X">2</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;All mne aer certade euqla&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1281848554829254" type="StandardSentences">
+                    <param id="0" name="X">3</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Liberte, egalite, fraternite&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8825566876342545" type="StandardSentences">
+                    <param id="0" name="X">3</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Lbireet, eagilet, faretnrtie&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="6307913850872124" type="StandardSentences">
+                    <param id="0" name="X">4</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;In the beginning God created the heavens and the Earth&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8796780737590039" type="StandardSentences">
+                    <param id="0" name="X">4</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;In teh bgeniingn Gdo certade teh haeevsn adn teh Eraht&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="6267840784533774" type="StandardSentences">
+                    <param id="0" name="X">5</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Life finds a way&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1930024581267814" type="StandardSentences">
+                    <param id="0" name="X">5</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Lfie fnisd a wya&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8012795687623622" type="StandardSentences">
+                    <param id="0" name="X">6</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Fear is the mind-killer&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8056249683187877" type="StandardSentences">
+                    <param id="0" name="X">6</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Faer is teh mnid-klielr&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="4687722224156399" type="StandardSentences">
+                    <param id="0" name="X">7</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Requiescat in pace&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8677265344099373" type="StandardSentences">
+                    <param id="0" name="X">7</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Rqeiuseact in pcae&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8063180986036127" type="StandardSentences">
+                    <param id="0" name="X">8</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Life imitates art&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="2903570248727153" type="StandardSentences">
+                    <param id="0" name="X">8</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Lfie iimatets atr&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1140915166349952" type="StandardSentences">
+                    <param id="0" name="X">9</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;The unexamined life is not worth living&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="9546795340070523" type="StandardSentences">
+                    <param id="0" name="X">9</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Teh uenaximend lfie is nto wroht lvinig&quot;</param>
                 </action>
             </actions>
         </event-block>
@@ -297,14 +387,22 @@
                         <condition id="-22" name="Else" sid="3960865656780106" type="System" />
                     </conditions>
                     <actions>
-                        <action id="-15" name="Set visible" sid="1021292201506076" type="CrossImage">
+                        <action id="-15" name="Set visible" sid="9754400302837529" type="CrossImage">
                             <param id="0" name="Visibility">1</param>
                         </action>
-                        <action id="-16" name="Wait" sid="7301260035421919" type="System">
-                            <param id="0" name="Seconds">1.0</param>
+                        <action id="7" name="Set CSS style" sid="5175506636728013" type="PlayerInput">
+                            <param id="0" name="Property name">&quot;background-color&quot;</param>
+                            <param id="1" name="Value">&quot;red&quot;</param>
                         </action>
-                        <action id="-15" name="Set visible" sid="3093937114546676" type="CrossImage">
+                        <action id="-16" name="Wait" sid="7264469829075396" type="System">
+                            <param id="0" name="Seconds">0.2</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="3741594258490182" type="CrossImage">
                             <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="7" name="Set CSS style" sid="625487983911271" type="PlayerInput">
+                            <param id="0" name="Property name">&quot;background-color&quot;</param>
+                            <param id="1" name="Value">&quot;white&quot;</param>
                         </action>
                     </actions>
                 </event-block>
@@ -405,6 +503,10 @@
                         </action>
                         <action id="-15" name="Set visible" sid="9537067955651622" type="BackToMainMenuPopup">
                             <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="0" name="Set local value" sid="1790613437776028" type="WebStorage">
+                            <param id="0" name="Key">&quot;StandardCompleted&quot;</param>
+                            <param id="1" name="Value">&quot;true&quot;</param>
                         </action>
                     </actions>
                 </event-block>
