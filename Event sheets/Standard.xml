@@ -112,6 +112,14 @@
                 </action>
             </actions>
         </event-block>
+        <event-block sid="2555872803895854">
+            <conditions>
+                <condition id="-3" name="On end of layout" sid="5796884841444321" type="System" />
+            </conditions>
+            <actions>
+                <action id="-21" name="Reset global variables" sid="1132987763095462" type="System" />
+            </actions>
+        </event-block>
         <event-block sid="1435081999918124">
             <conditions>
                 <condition id="6" name="On object clicked" sid="7730645293322981" type="Mouse">
@@ -459,6 +467,24 @@
                     <param id="0" name="Visibility">1</param>
                 </action>
             </actions>
+            <sub-events>
+                <variable constant="0" name="CurrentWordText" sid="5126317027488505" static="0" type="text"></variable>
+                <event-block sid="5596617335205586">
+                    <conditions />
+                    <actions>
+                        <action id="-9" name="Set value" sid="1601939852132486" type="System">
+                            <param id="0" name="Variable">CurrentWordText</param>
+                            <param id="1" name="Value">lowercase(StandardSentences.At(CurrentWord,1))</param>
+                        </action>
+                        <action id="0" name="Set text" sid="4163798145829595" type="PlayerInput">
+                            <param id="0" name="Text">CurrentWordText</param>
+                        </action>
+                        <action id="4" name="Set enabled" sid="2508888262807895" type="PlayerInput">
+                            <param id="0" name="Mode">0</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
         </event-block>
         <event-block sid="7443321314124298">
             <conditions>
