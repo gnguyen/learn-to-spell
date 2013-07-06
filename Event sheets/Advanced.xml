@@ -3,19 +3,295 @@
     <!--All the 'name' attributes are ignored by Construct 2 - they are there for readability only.-->
     <name>Advanced</name>
     <events>
-        <event-block sid="4275914707435253">
+        <include>Common</include>
+        <variable constant="0" name="ADVANCEDMAXTIMER" sid="4538334052822465" static="0" type="number">30</variable>
+        <variable constant="0" name="ADVANCEDPHRASESTOTAL" sid="5689508564511607" static="0" type="number">1</variable>
+        <event-block sid="5432639931270564">
             <conditions>
-                <condition id="6" name="On object clicked" sid="9545294869448032" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">BackToMainMenu</param>
+                <condition id="-2" name="On start of layout" sid="9166270569116509" type="System" />
+            </conditions>
+            <actions>
+                <action id="3" name="Set at XY" sid="1699748574758641" type="AdvancedQAs">
+                    <param id="0" name="X">0</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Teh cloros of teh riabnwo aer rde, oargne, yleolw, gerne, bule, voielt adn waht?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1828806436136058" type="AdvancedQAs">
+                    <param id="0" name="X">0</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Idngio&quot;</param>
+                </action>
+            </actions>
+        </event-block>
+        <event-block sid="844645347006357">
+            <conditions>
+                <condition id="-1" name="Every tick" sid="3388180431453845" type="System" />
+            </conditions>
+            <actions>
+                <action id="0" name="Set text" sid="6360834947191025" type="Timer">
+                    <param id="0" name="Text">TimerSeconds</param>
+                </action>
+                <action id="0" name="Set text" sid="2982434830910751" type="PhraseCount">
+                    <param id="0" name="Text">WordsCompleted &amp; &quot;/&quot; &amp; ADVANCEDPHRASESTOTAL</param>
+                </action>
+            </actions>
+        </event-block>
+        <event-block sid="31449516268949">
+            <conditions>
+                <condition id="-14" name="Compare variable" sid="9350146036648405" type="System">
+                    <param id="0" name="Variable">SetupNewCard</param>
+                    <param id="1" name="Comparison">0</param>
+                    <param id="2" name="Value">1</param>
+                </condition>
+            </conditions>
+            <actions />
+            <sub-events>
+                <event-block sid="7227214322402682">
+                    <conditions />
+                    <actions>
+                        <action id="-9" name="Set value" sid="1807484795186395" type="System">
+                            <param id="0" name="Variable">CurrentWord</param>
+                            <param id="1" name="Value">floor(random(0, ADVANCEDPHRASESTOTAL))</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="7071078185598443" type="System">
+                            <param id="0" name="Variable">SetupNewCard</param>
+                            <param id="1" name="Value">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="6684730454894452" type="CorrectText">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="2296598259774521" type="IncorrectText">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="5961246369628597" type="BackToMainMenuPopup">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="9147225576792173" type="Next">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="4064157531876071" type="TryAgain">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="5297614435940265" type="System">
+                            <param id="0" name="Variable">WordFailure</param>
+                            <param id="1" name="Value">0</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="7258065098932463" type="System">
+                            <param id="0" name="Variable">WordSuccess</param>
+                            <param id="1" name="Value">0</param>
+                        </action>
+                        <action id="0" name="Set text" sid="6545918208938193" type="PlayerInput">
+                            <param id="0" name="Text">&quot;&quot;</param>
+                        </action>
+                        <action id="6" name="Set focused" sid="3991011246937759" type="PlayerInput" />
+                    </actions>
+                </event-block>
+                <event-block sid="1549470402169688">
+                    <conditions>
+                        <condition id="-23" name="While" sid="5863973179384945" type="System" />
+                        <condition id="-8" name="Compare two values" sid="320496728226587" type="System">
+                            <param id="0" name="First value">CompletedBeginnerWords.At(CurrentWord)</param>
+                            <param id="1" name="Comparison">0</param>
+                            <param id="2" name="Second value">1</param>
+                        </condition>
+                    </conditions>
+                    <actions>
+                        <action id="-9" name="Set value" sid="3316875732031995" type="System">
+                            <param id="0" name="Variable">CurrentWord</param>
+                            <param id="1" name="Value">floor(random(0, ADVANCEDPHRASESTOTAL))</param>
+                        </action>
+                    </actions>
+                </event-block>
+                <event-block sid="9405842587350028">
+                    <conditions />
+                    <actions>
+                        <action id="0" name="Set text" sid="6648502596077632" type="Prompt">
+                            <param id="0" name="Text">AdvancedQAs.At(CurrentWord,0)</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="7714251461026605" type="Prompt">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="2231323893100704" type="System">
+                            <param id="0" name="Variable">TimerSeconds</param>
+                            <param id="1" name="Value">ADVANCEDMAXTIMER</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="9286192761837401" type="System">
+                            <param id="0" name="Variable">Pause</param>
+                            <param id="1" name="Value">0</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
+        </event-block>
+        <event-block sid="7574332038511716">
+            <conditions>
+                <condition id="0" name="On key pressed" sid="3083032930352902" type="Keyboard">
+                    <param id="0" name="Key">13 (Return)</param>
+                </condition>
+                <condition id="-14" name="Compare variable" sid="9937657728015577" type="System">
+                    <param id="0" name="Variable">Pause</param>
+                    <param id="1" name="Comparison">0</param>
+                    <param id="2" name="Value">0</param>
+                </condition>
+            </conditions>
+            <actions />
+            <sub-events>
+                <variable constant="0" name="CurrentWordText" sid="7954667391189489" static="0" type="text"></variable>
+                <variable constant="0" name="InputText" sid="2008085699613973" static="0" type="text"></variable>
+                <event-block sid="2667245616841388">
+                    <conditions />
+                    <actions>
+                        <action id="-9" name="Set value" sid="5687106657721498" type="System">
+                            <param id="0" name="Variable">CurrentWordText</param>
+                            <param id="1" name="Value">lowercase(AdvancedQAs.At(CurrentWord,1))</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="3027917125420764" type="System">
+                            <param id="0" name="Variable">InputText</param>
+                            <param id="1" name="Value">lowercase(PlayerInput.Text)</param>
+                        </action>
+                        <action id="0" name="Set text" sid="4901317630893618" type="PlayerInput">
+                            <param id="0" name="Text">&quot;&quot;</param>
+                        </action>
+                    </actions>
+                </event-block>
+                <event-block sid="8263984604307947">
+                    <conditions>
+                        <condition id="-8" name="Compare two values" sid="2894993066784736" type="System">
+                            <param id="0" name="First value">CurrentWordText</param>
+                            <param id="1" name="Comparison">0</param>
+                            <param id="2" name="Second value">InputText</param>
+                        </condition>
+                    </conditions>
+                    <actions>
+                        <action id="-10" name="Add to" sid="6091913842914298" type="System">
+                            <param id="0" name="Variable">WordsCompleted</param>
+                            <param id="1" name="Value">1</param>
+                        </action>
+                        <action id="2" name="Set at X" sid="2276539643135301" type="CompletedBeginnerWords">
+                            <param id="0" name="X">CurrentWord</param>
+                            <param id="1" name="Value">1</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="9108098555915894" type="System">
+                            <param id="0" name="Variable">Pause</param>
+                            <param id="1" name="Value">1</param>
+                        </action>
+                        <action id="-9" name="Set value" sid="6941004898741443" type="System">
+                            <param id="0" name="Variable">WordSuccess</param>
+                            <param id="1" name="Value">1</param>
+                        </action>
+                    </actions>
+                </event-block>
+                <event-block sid="4696038281928718">
+                    <conditions>
+                        <condition id="-22" name="Else" sid="8356794120522055" type="System" />
+                    </conditions>
+                    <actions>
+                        <action id="-15" name="Set visible" sid="5722903457216461" type="CrossImage">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="7" name="Set CSS style" sid="2289914327324493" type="PlayerInput">
+                            <param id="0" name="Property name">&quot;background-color&quot;</param>
+                            <param id="1" name="Value">&quot;red&quot;</param>
+                        </action>
+                        <action id="-16" name="Wait" sid="5745951541406035" type="System">
+                            <param id="0" name="Seconds">0.2</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="5361866160447864" type="CrossImage">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="7" name="Set CSS style" sid="2186234104352715" type="PlayerInput">
+                            <param id="0" name="Property name">&quot;background-color&quot;</param>
+                            <param id="1" name="Value">&quot;white&quot;</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
+        </event-block>
+        <event-block sid="3539431502843619">
+            <conditions>
+                <condition id="-14" name="Compare variable" sid="921920186437986" type="System">
+                    <param id="0" name="Variable">WordFailure</param>
+                    <param id="1" name="Comparison">0</param>
+                    <param id="2" name="Value">1</param>
                 </condition>
             </conditions>
             <actions>
-                <action id="-2" name="Go to layout" sid="8190188796273532" type="System">
-                    <param id="0" name="Layout">Main Menu</param>
+                <action id="-15" name="Set visible" sid="9570535902509982" type="BackToMainMenuPopup">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+                <action id="-15" name="Set visible" sid="5211798878075333" type="IncorrectText">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+                <action id="-15" name="Set visible" sid="3674383680838668" type="TryAgain">
+                    <param id="0" name="Visibility">1</param>
                 </action>
             </actions>
+            <sub-events>
+                <variable constant="0" name="CurrentWordText" sid="3794067987997189" static="0" type="text"></variable>
+                <event-block sid="4237934918426664">
+                    <conditions />
+                    <actions>
+                        <action id="-9" name="Set value" sid="2957799313721029" type="System">
+                            <param id="0" name="Variable">CurrentWordText</param>
+                            <param id="1" name="Value">lowercase(AdvancedQAs.At(CurrentWord,1))</param>
+                        </action>
+                        <action id="0" name="Set text" sid="6365773536912904" type="PlayerInput">
+                            <param id="0" name="Text">CurrentWordText</param>
+                        </action>
+                        <action id="4" name="Set enabled" sid="374914308490253" type="PlayerInput">
+                            <param id="0" name="Mode">0</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
+        </event-block>
+        <event-block sid="97354723680869">
+            <conditions>
+                <condition id="-14" name="Compare variable" sid="1830974818784512" type="System">
+                    <param id="0" name="Variable">WordSuccess</param>
+                    <param id="1" name="Comparison">0</param>
+                    <param id="2" name="Value">1</param>
+                </condition>
+            </conditions>
+            <actions />
+            <sub-events>
+                <event-block sid="3428064284688787">
+                    <conditions>
+                        <condition id="-14" name="Compare variable" sid="2060159553487029" type="System">
+                            <param id="0" name="Variable">WordsCompleted</param>
+                            <param id="1" name="Comparison">2</param>
+                            <param id="2" name="Value">STANDARDPHRASESTOTAL</param>
+                        </condition>
+                    </conditions>
+                    <actions>
+                        <action id="-15" name="Set visible" sid="5482095740469349" type="BackToMainMenuPopup">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="3680279868841166" type="CorrectText">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="9932776526326554" type="Next">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                    </actions>
+                </event-block>
+                <event-block sid="5323090455233443">
+                    <conditions>
+                        <condition id="-22" name="Else" sid="9997898647983387" type="System" />
+                    </conditions>
+                    <actions>
+                        <action id="0" name="Set text" sid="4922616421396415" type="CorrectText">
+                            <param id="0" name="Text">&quot;All croertc!&quot;</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="3522581515974767" type="CorrectText">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="8847105060391829" type="BackToMainMenuPopup">
+                            <param id="0" name="Visibility">1</param>
+                        </action>
+                    </actions>
+                </event-block>
+            </sub-events>
         </event-block>
     </events>
 </c2eventsheet>

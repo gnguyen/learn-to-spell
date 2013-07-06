@@ -3,6 +3,7 @@
     <!--All the 'name' attributes are ignored by Construct 2 - they are there for readability only.-->
     <name>Standard</name>
     <events>
+        <include>Common</include>
         <variable constant="1" name="STANDARDMAXTIMER" sid="4157930343918855" static="0" type="number">30</variable>
         <variable constant="1" name="STANDARDPHRASESTOTAL" sid="497394394626088" static="0" type="number">10</variable>
         <event-block sid="5946182323379769">
@@ -112,82 +113,6 @@
                 </action>
             </actions>
         </event-block>
-        <event-block sid="2555872803895854">
-            <conditions>
-                <condition id="-3" name="On end of layout" sid="5796884841444321" type="System" />
-            </conditions>
-            <actions>
-                <action id="-21" name="Reset global variables" sid="1132987763095462" type="System" />
-            </actions>
-        </event-block>
-        <event-block sid="1435081999918124">
-            <conditions>
-                <condition id="6" name="On object clicked" sid="7730645293322981" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">BackToMainMenu</param>
-                </condition>
-            </conditions>
-            <actions>
-                <action id="-2" name="Go to layout" sid="705404929632391" type="System">
-                    <param id="0" name="Layout">Main Menu</param>
-                </action>
-            </actions>
-        </event-block>
-        <event-block sid="6502338978137481">
-            <conditions>
-                <condition id="6" name="On object clicked" sid="1574847096797993" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">BackToMainMenuPopup</param>
-                </condition>
-                <condition id="-9" name="Is visible" sid="71335477324667" type="BackToMainMenuPopup" />
-            </conditions>
-            <actions>
-                <action id="-2" name="Go to layout" sid="6081002834808396" type="System">
-                    <param id="0" name="Layout">Main Menu</param>
-                </action>
-            </actions>
-        </event-block>
-        <event-block sid="2212849686818622">
-            <conditions>
-                <condition id="6" name="On object clicked" sid="9152625379904521" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">Begin</param>
-                </condition>
-                <condition id="-9" name="Is visible" sid="2197635797585666" type="Begin" />
-            </conditions>
-            <actions>
-                <action id="-15" name="Set visible" sid="4089256704221654" type="Begin">
-                    <param id="0" name="Visibility">0</param>
-                </action>
-                <action id="-15" name="Set visible" sid="8007273769869436" type="StandardInstructions">
-                    <param id="0" name="Visibility">0</param>
-                </action>
-                <action id="-15" name="Set visible" sid="1586544668785156" type="ClockImage">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="-15" name="Set visible" sid="8447202970370739" type="PhraseCount">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="3" name="Set visible" sid="2835900327975935" type="PlayerInput">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="6" name="Set focused" sid="6749931820703834" type="PlayerInput" />
-                <action id="-15" name="Set visible" sid="4924428279971227" type="Timer">
-                    <param id="0" name="Visibility">1</param>
-                </action>
-                <action id="-9" name="Set value" sid="2856112193557763" type="System">
-                    <param id="0" name="Variable">Pause</param>
-                    <param id="1" name="Value">0</param>
-                </action>
-                <action id="-9" name="Set value" sid="6390407778487728" type="System">
-                    <param id="0" name="Variable">SetupNewCard</param>
-                    <param id="1" name="Value">1</param>
-                </action>
-            </actions>
-        </event-block>
         <event-block sid="4001580662118663">
             <conditions>
                 <condition id="-1" name="Every tick" sid="3632850938320464" type="System" />
@@ -200,50 +125,6 @@
                     <param id="0" name="Text">WordsCompleted &amp; &quot;/&quot; &amp; STANDARDPHRASESTOTAL</param>
                 </action>
             </actions>
-        </event-block>
-        <event-block sid="8797325883040602">
-            <conditions>
-                <condition id="-6" name="Every X seconds" sid="8537908393265291" type="System">
-                    <param id="0" name="Interval (seconds)">1.0</param>
-                </condition>
-                <condition id="-14" name="Compare variable" sid="6314791331166138" type="System">
-                    <param id="0" name="Variable">TimerSeconds</param>
-                    <param id="1" name="Comparison">4</param>
-                    <param id="2" name="Value">0</param>
-                </condition>
-                <condition id="-14" name="Compare variable" sid="6327597252532585" type="System">
-                    <param id="0" name="Variable">Pause</param>
-                    <param id="1" name="Comparison">0</param>
-                    <param id="2" name="Value">0</param>
-                </condition>
-            </conditions>
-            <actions>
-                <action id="-11" name="Subtract from" sid="5114951436421359" type="System">
-                    <param id="0" name="Variable">TimerSeconds</param>
-                    <param id="1" name="Value">1</param>
-                </action>
-            </actions>
-            <sub-events>
-                <event-block sid="5619301084977197">
-                    <conditions>
-                        <condition id="-14" name="Compare variable" sid="750403149273098" type="System">
-                            <param id="0" name="Variable">TimerSeconds</param>
-                            <param id="1" name="Comparison">3</param>
-                            <param id="2" name="Value">0</param>
-                        </condition>
-                    </conditions>
-                    <actions>
-                        <action id="-9" name="Set value" sid="3173235412788864" type="System">
-                            <param id="0" name="Variable">Pause</param>
-                            <param id="1" name="Value">1</param>
-                        </action>
-                        <action id="-9" name="Set value" sid="9416188645021409" type="System">
-                            <param id="0" name="Variable">WordFailure</param>
-                            <param id="1" name="Value">1</param>
-                        </action>
-                    </actions>
-                </event-block>
-            </sub-events>
         </event-block>
         <event-block sid="2379352414436516">
             <conditions>
@@ -415,38 +296,6 @@
                     </actions>
                 </event-block>
             </sub-events>
-        </event-block>
-        <event-block sid="2184583833764639">
-            <conditions>
-                <condition id="6" name="On object clicked" sid="6574096824358499" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">Next</param>
-                </condition>
-                <condition id="-9" name="Is visible" sid="9501822756014865" type="Next" />
-            </conditions>
-            <actions>
-                <action id="-9" name="Set value" sid="3293818402816623" type="System">
-                    <param id="0" name="Variable">SetupNewCard</param>
-                    <param id="1" name="Value">1</param>
-                </action>
-            </actions>
-        </event-block>
-        <event-block sid="1016506045122704">
-            <conditions>
-                <condition id="6" name="On object clicked" sid="1466254650099433" type="Mouse">
-                    <param id="0" name="Mouse button">0</param>
-                    <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">TryAgain</param>
-                </condition>
-                <condition id="-9" name="Is visible" sid="6678933373459877" type="TryAgain" />
-            </conditions>
-            <actions>
-                <action id="-9" name="Set value" sid="3512390593021886" type="System">
-                    <param id="0" name="Variable">SetupNewCard</param>
-                    <param id="1" name="Value">1</param>
-                </action>
-            </actions>
         </event-block>
         <event-block sid="9757809546502038">
             <conditions>

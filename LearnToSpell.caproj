@@ -10,6 +10,7 @@
     <unique-id>2h2br966cgjor</unique-id>
     <saved-with-version>13200</saved-with-version>
     <used-plugins>
+        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
         <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
         <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
         <plugin author="Scirra" id="Sprite" version="1">Sprite</plugin>
@@ -17,7 +18,6 @@
         <plugin author="Scirra" id="TextBox" version="1">Text box</plugin>
         <plugin author="Scirra" id="TiledBg" version="1">Tiled Background</plugin>
         <plugin author="Zack0Wack0/Scirra" id="WebStorage" version="1">WebStorage</plugin>
-        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
     </used-plugins>
     <used-behaviors>
         <behavior author="Scirra" id="Flash" version="1">Flash</behavior>
@@ -295,6 +295,9 @@
         <object-type name="AdvancedInstructions" sid="9171551931850878">
             <plugin id="Text" />
         </object-type>
+        <object-type global="1" name="AdvancedQAs" sid="9598655839956896">
+            <plugin id="Arr" />
+        </object-type>
     </object-folder>
     <families />
     <layout-folder expanded="1">
@@ -308,6 +311,7 @@
         <event-sheet>Beginner.xml</event-sheet>
         <event-sheet>Standard.xml</event-sheet>
         <event-sheet>Advanced.xml</event-sheet>
+        <event-sheet>Common.xml</event-sheet>
     </event-folder>
     <global-instances>
         <global-instance type="Keyboard" uid="0" />

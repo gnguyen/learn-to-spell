@@ -294,6 +294,13 @@
                 <depth>1</depth>
             </properties>
         </instance>
+        <instance type="AdvancedQAs" uid="68">
+            <properties>
+                <width>5</width>
+                <height>2</height>
+                <depth>1</depth>
+            </properties>
+        </instance>
     </nonworld-instances>
     <effects />
 </c2layout>
