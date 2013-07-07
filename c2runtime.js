@@ -14257,30 +14257,6 @@ cr.getProjectModel = function() { return [
 	"Main Menu",
 	[
 	[
-		cr.plugins_.Keyboard,
-		true,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false
-	]
-,	[
-		cr.plugins_.Mouse,
-		true,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false
-	]
-,	[
 		cr.plugins_.Sprite,
 		false,
 		true,
@@ -14343,6 +14319,30 @@ cr.getProjectModel = function() { return [
 ,	[
 		cr.plugins_.Arr,
 		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	]
+,	[
+		cr.plugins_.Keyboard,
+		true,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	]
+,	[
+		cr.plugins_.Mouse,
+		true,
 		false,
 		false,
 		false,
@@ -16849,6 +16849,50 @@ false,false,3578794167545708
 			]
 			],
 			[
+			[
+				3,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9046824935754593
+				,[
+				[
+					1,
+					[
+						2,
+						"chock_a_block_nfregular"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://gnguyen.github.io/learn-to-spell/chock-a-blocknf-webfont.woff"
+					]
+				]
+				]
+			]
+,			[
+				4,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5730016499075548
+				,[
+				[
+					1,
+					[
+						2,
+						"chock_a_block_nfregular"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://gnguyen.github.io/learn-to-spell/chock-a-blocknf-webfont.woff"
+					]
+				]
+				]
+			]
 			]
 			,[
 			[
