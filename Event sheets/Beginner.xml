@@ -155,7 +155,7 @@
                     <conditions>
                         <condition id="-23" name="While" sid="6910083343322042" type="System" />
                         <condition id="-8" name="Compare two values" sid="6256990676394777" type="System">
-                            <param id="0" name="First value">CompletedBeginnerWords.At(CurrentWord)</param>
+                            <param id="0" name="First value">CompletedWords.At(CurrentWord)</param>
                             <param id="1" name="Comparison">0</param>
                             <param id="2" name="Second value">1</param>
                         </condition>
@@ -296,7 +296,7 @@
                             <param id="0" name="Variable">WordsCompleted</param>
                             <param id="1" name="Value">1</param>
                         </action>
-                        <action id="2" name="Set at X" sid="8495870765306487" type="CompletedBeginnerWords">
+                        <action id="2" name="Set at X" sid="8495870765306487" type="CompletedWords">
                             <param id="0" name="X">CurrentWord</param>
                             <param id="1" name="Value">1</param>
                         </action>

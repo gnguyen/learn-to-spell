@@ -5,7 +5,7 @@
     <events>
         <include>Common</include>
         <variable constant="0" name="ADVANCEDMAXTIMER" sid="4538334052822465" static="0" type="number">30</variable>
-        <variable constant="0" name="ADVANCEDPHRASESTOTAL" sid="5689508564511607" static="0" type="number">5</variable>
+        <variable constant="0" name="ADVANCEDPHRASESTOTAL" sid="5689508564511607" static="0" type="number">10</variable>
         <event-block sid="5432639931270564">
             <conditions>
                 <condition id="-2" name="On start of layout" sid="9166270569116509" type="System" />
@@ -60,6 +60,56 @@
                     <param id="0" name="X">4</param>
                     <param id="1" name="Y">1</param>
                     <param id="2" name="Value">&quot;Altnaitc&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="2326330084516982" type="AdvancedQAs">
+                    <param id="0" name="X">5</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht wsa teh nmae of teh atsorantu to frits wlak on teh Moon?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1137276838104407" type="AdvancedQAs">
+                    <param id="0" name="X">5</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Niel Amrtsorgn&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="5159769092149393" type="AdvancedQAs">
+                    <param id="0" name="X">6</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht is teh nmae of teh lraegts konnw ainaml?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="4651546597350907" type="AdvancedQAs">
+                    <param id="0" name="X">6</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Bule wahel&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="5274254989397592" type="AdvancedQAs">
+                    <param id="0" name="X">7</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht is teh suodn ciaesd by lgithingn?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="3106045063225323" type="AdvancedQAs">
+                    <param id="0" name="X">7</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Tuhdnre&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8700508710519969" type="AdvancedQAs">
+                    <param id="0" name="X">8</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;An aera of wtare adn vgetetaoin in a dseret is konnw as a waht?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="9035548174473725" type="AdvancedQAs">
+                    <param id="0" name="X">8</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Osasi&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="5343275443061993" type="AdvancedQAs">
+                    <param id="0" name="X">9</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Teh sohtrset mnoht of teh yaer is claeld waht?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="7985446797433763" type="AdvancedQAs">
+                    <param id="0" name="X">9</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Fbeurray&quot;</param>
                 </action>
             </actions>
         </event-block>
@@ -130,7 +180,7 @@
                     <conditions>
                         <condition id="-23" name="While" sid="5863973179384945" type="System" />
                         <condition id="-8" name="Compare two values" sid="320496728226587" type="System">
-                            <param id="0" name="First value">CompletedBeginnerWords.At(CurrentWord)</param>
+                            <param id="0" name="First value">CompletedWords.At(CurrentWord)</param>
                             <param id="1" name="Comparison">0</param>
                             <param id="2" name="Second value">1</param>
                         </condition>
@@ -207,7 +257,7 @@
                             <param id="0" name="Variable">WordsCompleted</param>
                             <param id="1" name="Value">1</param>
                         </action>
-                        <action id="2" name="Set at X" sid="2276539643135301" type="CompletedBeginnerWords">
+                        <action id="2" name="Set at X" sid="2276539643135301" type="CompletedWords">
                             <param id="0" name="X">CurrentWord</param>
                             <param id="1" name="Value">1</param>
                         </action>
