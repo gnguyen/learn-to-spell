@@ -5,7 +5,7 @@
     <events>
         <include>Common</include>
         <variable constant="0" name="ADVANCEDMAXTIMER" sid="4538334052822465" static="0" type="number">30</variable>
-        <variable constant="0" name="ADVANCEDPHRASESTOTAL" sid="5689508564511607" static="0" type="number">1</variable>
+        <variable constant="0" name="ADVANCEDPHRASESTOTAL" sid="5689508564511607" static="0" type="number">5</variable>
         <event-block sid="5432639931270564">
             <conditions>
                 <condition id="-2" name="On start of layout" sid="9166270569116509" type="System" />
@@ -20,6 +20,46 @@
                     <param id="0" name="X">0</param>
                     <param id="1" name="Y">1</param>
                     <param id="2" name="Value">&quot;Idngio&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="9654802004547523" type="AdvancedQAs">
+                    <param id="0" name="X">1</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht is teh lraegts palent in teh Slora Ssyetm?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="7368896079785583" type="AdvancedQAs">
+                    <param id="0" name="X">1</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Jputire&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="8949817792155838" type="AdvancedQAs">
+                    <param id="0" name="X">2</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht is teh frits eelemtn of teh preoiidc tbael?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="3920050702862607" type="AdvancedQAs">
+                    <param id="0" name="X">2</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Hdyoregn&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="9239718141108461" type="AdvancedQAs">
+                    <param id="0" name="X">3</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Appaeirgn in Atcoin Cmocis #1, woh wsa teh frits cmoci book spureehor?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="1404689486814432" type="AdvancedQAs">
+                    <param id="0" name="X">3</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Spureamn&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="210237090785945" type="AdvancedQAs">
+                    <param id="0" name="X">4</param>
+                    <param id="1" name="Y">0</param>
+                    <param id="2" name="Value">&quot;Waht is teh nmae of teh oecna bteewne teh Aemiracs adn Erupoe adn Arfcia?&quot;</param>
+                </action>
+                <action id="3" name="Set at XY" sid="4069810458674262" type="AdvancedQAs">
+                    <param id="0" name="X">4</param>
+                    <param id="1" name="Y">1</param>
+                    <param id="2" name="Value">&quot;Altnaitc&quot;</param>
                 </action>
             </actions>
         </event-block>
@@ -260,7 +300,7 @@
                         <condition id="-14" name="Compare variable" sid="2060159553487029" type="System">
                             <param id="0" name="Variable">WordsCompleted</param>
                             <param id="1" name="Comparison">2</param>
-                            <param id="2" name="Value">STANDARDPHRASESTOTAL</param>
+                            <param id="2" name="Value">ADVANCEDPHRASESTOTAL</param>
                         </condition>
                     </conditions>
                     <actions>
@@ -280,14 +320,8 @@
                         <condition id="-22" name="Else" sid="9997898647983387" type="System" />
                     </conditions>
                     <actions>
-                        <action id="0" name="Set text" sid="4922616421396415" type="CorrectText">
-                            <param id="0" name="Text">&quot;All croertc!&quot;</param>
-                        </action>
-                        <action id="-15" name="Set visible" sid="3522581515974767" type="CorrectText">
-                            <param id="0" name="Visibility">1</param>
-                        </action>
-                        <action id="-15" name="Set visible" sid="8847105060391829" type="BackToMainMenuPopup">
-                            <param id="0" name="Visibility">1</param>
+                        <action id="-2" name="Go to layout" sid="447436698231611" type="System">
+                            <param id="0" name="Layout">Ending</param>
                         </action>
                     </actions>
                 </event-block>

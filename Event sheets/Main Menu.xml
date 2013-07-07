@@ -125,7 +125,7 @@
                     <param id="2" name="Object clicked">Advanced</param>
                 </condition>
                 <condition id="-9" name="Is visible" sid="291360957308712" type="Advanced" />
-                <condition disabled="1" id="3" name="Local key exists" sid="6993275150976244" type="WebStorage">
+                <condition id="3" name="Local key exists" sid="6993275150976244" type="WebStorage">
                     <param id="0" name="Key">&quot;StandardCompleted&quot;</param>
                 </condition>
             </conditions>

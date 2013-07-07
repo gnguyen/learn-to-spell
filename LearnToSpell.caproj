@@ -10,7 +10,6 @@
     <unique-id>2h2br966cgjor</unique-id>
     <saved-with-version>13200</saved-with-version>
     <used-plugins>
-        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
         <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
         <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
         <plugin author="Scirra" id="Sprite" version="1">Sprite</plugin>
@@ -18,6 +17,7 @@
         <plugin author="Scirra" id="TextBox" version="1">Text box</plugin>
         <plugin author="Scirra" id="TiledBg" version="1">Tiled Background</plugin>
         <plugin author="Zack0Wack0/Scirra" id="WebStorage" version="1">WebStorage</plugin>
+        <plugin author="Scirra" id="Arr" version="1">Array</plugin>
     </used-plugins>
     <used-behaviors>
         <behavior author="Scirra" id="Flash" version="1">Flash</behavior>
@@ -51,7 +51,7 @@
         <object-type name="Mouse" sid="1523906898327422">
             <plugin id="Mouse" />
         </object-type>
-        <object-type name="Background" sid="973151775017948">
+        <object-type name="MainMenuBackground" sid="973151775017948">
             <plugin id="TiledBg" />
             <texture />
         </object-type>
@@ -298,6 +298,16 @@
         <object-type global="1" name="AdvancedQAs" sid="9598655839956896">
             <plugin id="Arr" />
         </object-type>
+        <object-type name="EndingBackground" sid="321887771911966">
+            <plugin id="TiledBg" />
+            <texture />
+        </object-type>
+        <object-type name="EndingText" sid="5203727805877781">
+            <plugin id="Text" />
+        </object-type>
+        <object-type name="EndingText2" sid="4118329634605199">
+            <plugin id="Text" />
+        </object-type>
     </object-folder>
     <families />
     <layout-folder expanded="1">
@@ -305,6 +315,7 @@
         <layout>Beginner.xml</layout>
         <layout>Standard.xml</layout>
         <layout>Advanced.xml</layout>
+        <layout>Ending.xml</layout>
     </layout-folder>
     <event-folder expanded="1">
         <event-sheet>Main Menu.xml</event-sheet>
@@ -312,6 +323,7 @@
         <event-sheet>Standard.xml</event-sheet>
         <event-sheet>Advanced.xml</event-sheet>
         <event-sheet>Common.xml</event-sheet>
+        <event-sheet>Ending.xml</event-sheet>
     </event-folder>
     <global-instances>
         <global-instance type="Keyboard" uid="0" />
