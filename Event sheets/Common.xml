@@ -16,7 +16,7 @@
                 <condition id="6" name="On object clicked" sid="9255714020686624" type="Mouse">
                     <param id="0" name="Mouse button">0</param>
                     <param id="1" name="Click type">0</param>
-                    <param id="2" name="Object clicked">BackToMainMenu</param>
+                    <param id="2" name="Object clicked">BackIcon</param>
                 </condition>
             </conditions>
             <actions>
@@ -72,6 +72,9 @@
                     <param id="0" name="Visibility">1</param>
                 </action>
                 <action id="6" name="Set focused" sid="3558509688359439" type="PlayerInput" />
+                <action id="-15" name="Set visible" sid="4192331421237834" type="StarIcon">
+                    <param id="0" name="Visibility">1</param>
+                </action>
                 <action id="-15" name="Set visible" sid="2942917591924075" type="Timer">
                     <param id="0" name="Visibility">1</param>
                 </action>

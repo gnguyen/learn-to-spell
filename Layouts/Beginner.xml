@@ -47,32 +47,15 @@
                         <opacity>1</opacity>
                     </world>
                 </instance>
-            </instances>
-            <effects />
-        </layer>
-        <layer name="Objects" sid="9137932300410905">
-            <initially-visible>1</initially-visible>
-            <background-color>255,255,255</background-color>
-            <transparent>1</transparent>
-            <parallax>
-                <x>1</x>
-                <y>1</y>
-            </parallax>
-            <zoom-rate>1</zoom-rate>
-            <opacity>1</opacity>
-            <force-own-texture>0</force-own-texture>
-            <blend-mode>0</blend-mode>
-            <effect-fallback>0</effect-fallback>
-            <instances>
-                <instance type="BackToMainMenu" uid="10">
+                <instance type="Beginner" uid="18">
                     <properties>
-                        <text>Bcak</text>
+                        <text>Bgenienr</text>
                         <initial-visibility>Visible</initial-visibility>
                         <font>Arial,-24,400,0</font>
                         <color>0,0,0</color>
-                        <horizontal-alignment>Left</horizontal-alignment>
-                        <vertical-alignment>Top</vertical-alignment>
-                        <hotspot>Top-left</hotspot>
+                        <horizontal-alignment>Center</horizontal-alignment>
+                        <vertical-alignment>Center</vertical-alignment>
+                        <hotspot>Center</hotspot>
                         <wrapping>Word</wrapping>
                         <line-height>0</line-height>
                     </properties>
@@ -80,10 +63,10 @@
                     <effect-fallback>0</effect-fallback>
                     <world>
                         <x>0</x>
-                        <y>448</y>
+                        <y>80</y>
                         <z>0</z>
-                        <width>60</width>
-                        <height>32</height>
+                        <width>110</width>
+                        <height>40</height>
                         <depth>0</depth>
                         <hotspotX>0</hotspotX>
                         <hotspotY>0</hotspotY>
@@ -118,38 +101,50 @@
                         <opacity>1</opacity>
                     </world>
                 </instance>
-                <instance type="Beginner" uid="18">
+                <instance type="BackIcon" uid="77">
                     <properties>
-                        <text>Bgenienr</text>
                         <initial-visibility>Visible</initial-visibility>
-                        <font>Arial,-24,400,0</font>
-                        <color>0,0,0</color>
-                        <horizontal-alignment>Center</horizontal-alignment>
-                        <vertical-alignment>Center</vertical-alignment>
-                        <hotspot>Center</hotspot>
-                        <wrapping>Word</wrapping>
-                        <line-height>0</line-height>
+                        <initial-animation>Default</initial-animation>
+                        <initial-frame>0</initial-frame>
+                        <collisions>Enabled</collisions>
                     </properties>
                     <blend-mode>0</blend-mode>
                     <effect-fallback>0</effect-fallback>
                     <world>
-                        <x>0</x>
-                        <y>80</y>
+                        <x>37</x>
+                        <y>457</y>
                         <z>0</z>
-                        <width>110</width>
-                        <height>40</height>
+                        <width>64</width>
+                        <height>35</height>
                         <depth>0</depth>
-                        <hotspotX>0</hotspotX>
-                        <hotspotY>0</hotspotY>
+                        <hotspotX>0.503937006</hotspotX>
+                        <hotspotY>0.5</hotspotY>
                         <angle>0</angle>
                         <opacity>1</opacity>
                     </world>
                 </instance>
+            </instances>
+            <effects />
+        </layer>
+        <layer name="Objects" sid="9137932300410905">
+            <initially-visible>1</initially-visible>
+            <background-color>255,255,255</background-color>
+            <transparent>1</transparent>
+            <parallax>
+                <x>1</x>
+                <y>1</y>
+            </parallax>
+            <zoom-rate>1</zoom-rate>
+            <opacity>1</opacity>
+            <force-own-texture>0</force-own-texture>
+            <blend-mode>0</blend-mode>
+            <effect-fallback>0</effect-fallback>
+            <instances>
                 <instance type="Timer" uid="25">
                     <properties>
                         <text>10</text>
                         <initial-visibility>Invisible</initial-visibility>
-                        <font>Arial,-16</font>
+                        <font>Arial,-21,400,0</font>
                         <color>255,0,0</color>
                         <horizontal-alignment>Left</horizontal-alignment>
                         <vertical-alignment>Center</vertical-alignment>
@@ -161,7 +156,7 @@
                     <effect-fallback>0</effect-fallback>
                     <world>
                         <x>440</x>
-                        <y>440</y>
+                        <y>433</y>
                         <z>0</z>
                         <width>30</width>
                         <height>30</height>
@@ -182,8 +177,8 @@
                     <blend-mode>0</blend-mode>
                     <effect-fallback>0</effect-fallback>
                     <world>
-                        <x>418</x>
-                        <y>453</y>
+                        <x>420</x>
+                        <y>447</y>
                         <z>0</z>
                         <width>16</width>
                         <height>16</height>
@@ -211,7 +206,7 @@
                     <effect-fallback>0</effect-fallback>
                     <world>
                         <x>246</x>
-                        <y>440</y>
+                        <y>434</y>
                         <z>0</z>
                         <width>150</width>
                         <height>30</height>
@@ -222,12 +217,12 @@
                 </instance>
                 <instance type="PhraseCount" uid="23">
                     <properties>
-                        <text>0/5</text>
+                        <text>5/5</text>
                         <initial-visibility>Invisible</initial-visibility>
-                        <font>Arial,-24,400,0</font>
+                        <font>Arial,-21,400,0</font>
                         <color>0,0,0</color>
                         <horizontal-alignment>Left</horizontal-alignment>
-                        <vertical-alignment>Top</vertical-alignment>
+                        <vertical-alignment>Center</vertical-alignment>
                         <hotspot>Top-left</hotspot>
                         <wrapping>Word</wrapping>
                         <line-height>0</line-height>
@@ -235,11 +230,11 @@
                     <blend-mode>0</blend-mode>
                     <effect-fallback>0</effect-fallback>
                     <world>
-                        <x>409</x>
-                        <y>393</y>
+                        <x>440</x>
+                        <y>403</y>
                         <z>0</z>
-                        <width>70</width>
-                        <height>32</height>
+                        <width>40</width>
+                        <height>30</height>
                         <depth>0</depth>
                         <hotspotX>0</hotspotX>
                         <hotspotY>0</hotspotY>
@@ -247,7 +242,7 @@
                         <opacity>1</opacity>
                     </world>
                 </instance>
-                <instance type="CrossImage" uid="37">
+                <instance type="DeleteImage" uid="37">
                     <properties>
                         <initial-visibility>Invisible</initial-visibility>
                         <initial-animation>Default</initial-animation>
@@ -258,7 +253,29 @@
                     <effect-fallback>0</effect-fallback>
                     <world>
                         <x>230</x>
-                        <y>454</y>
+                        <y>448</y>
+                        <z>0</z>
+                        <width>16</width>
+                        <height>16</height>
+                        <depth>0</depth>
+                        <hotspotX>0.5</hotspotX>
+                        <hotspotY>0.5</hotspotY>
+                        <angle>0</angle>
+                        <opacity>1</opacity>
+                    </world>
+                </instance>
+                <instance type="StarIcon" uid="74">
+                    <properties>
+                        <initial-visibility>Invisible</initial-visibility>
+                        <initial-animation>Default</initial-animation>
+                        <initial-frame>0</initial-frame>
+                        <collisions>Enabled</collisions>
+                    </properties>
+                    <blend-mode>0</blend-mode>
+                    <effect-fallback>0</effect-fallback>
+                    <world>
+                        <x>420</x>
+                        <y>417</y>
                         <z>0</z>
                         <width>16</width>
                         <height>16</height>
