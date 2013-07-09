@@ -10,6 +10,7 @@
     <unique-id>2h2br966cgjor</unique-id>
     <saved-with-version>13200</saved-with-version>
     <used-plugins>
+        <plugin author="Scirra" id="Audio" version="1">Audio</plugin>
         <plugin author="Scirra" id="Arr" version="1">Array</plugin>
         <plugin author="Scirra" id="Keyboard" version="1">Keyboard</plugin>
         <plugin author="Scirra" id="Mouse" version="1">Mouse</plugin>
@@ -343,6 +344,9 @@
                 </animation>
             </animation-folder>
         </object-type>
+        <object-type name="Audio" sid="4788673265651545">
+            <plugin id="Audio" />
+        </object-type>
     </object-folder>
     <families />
     <layout-folder expanded="1">
@@ -364,8 +368,32 @@
         <global-instance type="Keyboard" uid="0" />
         <global-instance type="Mouse" uid="1" />
         <global-instance type="WebStorage" uid="8" />
+        <global-instance type="Audio" uid="14">
+            <properties>
+                <timescale-audio>Off</timescale-audio>
+                <positioned-audio></positioned-audio>
+                <panning-model>HRTF</panning-model>
+                <distance-model>Inverse</distance-model>
+                <listener-z-height>600</listener-z-height>
+                <reference-distance>600</reference-distance>
+                <maximum-distance>10000</maximum-distance>
+                <roll-off-factor>1</roll-off-factor>
+                <speed-of-sound>5000</speed-of-sound>
+                <doppler-factor>1</doppler-factor>
+            </properties>
+        </global-instance>
     </global-instances>
-    <sounds-folder expanded="1" />
-    <music-folder expanded="1" />
+    <sounds-folder expanded="1">
+        <file name="SFX5.m4a" />
+        <file name="SFX5.ogg" />
+        <file name="SFX5.wav" />
+        <file name="SquareMotif1.m4a" />
+        <file name="SquareMotif1.ogg" />
+        <file name="SquareMotif1.wav" />
+    </sounds-folder>
+    <music-folder expanded="1">
+        <file name="MattOglseby - 1.m4a" />
+        <file name="MattOglseby - 1.ogg" />
+    </music-folder>
     <files-folder expanded="1" />
 </c2project>

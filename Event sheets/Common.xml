@@ -120,6 +120,12 @@
                         </condition>
                     </conditions>
                     <actions>
+                        <action id="0" name="Play" sid="4904891028247188" type="Audio">
+                            <param id="0" name="Audio file">SFX5</param>
+                            <param id="2" name="Loop">0</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;fx&quot;</param>
+                        </action>
                         <action id="-9" name="Set value" sid="4372765602603643" type="System">
                             <param id="0" name="Variable">Pause</param>
                             <param id="1" name="Value">1</param>

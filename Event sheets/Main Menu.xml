@@ -53,6 +53,19 @@
                         </action>
                     </actions>
                 </event-block>
+                <event-block sid="5272126272246381">
+                    <conditions>
+                        <condition id="4" inverted="1" name="Is any playing" sid="8801026737455341" type="Audio" />
+                    </conditions>
+                    <actions>
+                        <action id="0" name="Play" sid="5003639192357261" type="Audio">
+                            <param id="0" name="Audio file">MattOglseby - 1</param>
+                            <param id="2" name="Loop">1</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;&quot;</param>
+                        </action>
+                    </actions>
+                </event-block>
             </sub-events>
         </event-block>
         <event-block sid="5700430164456359">

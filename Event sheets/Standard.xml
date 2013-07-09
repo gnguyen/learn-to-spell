@@ -269,6 +269,12 @@
                             <param id="0" name="Variable">WordSuccess</param>
                             <param id="1" name="Value">1</param>
                         </action>
+                        <action id="0" name="Play" sid="7834653087541982" type="Audio">
+                            <param id="0" name="Audio file">SquareMotif1</param>
+                            <param id="2" name="Loop">0</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;fx&quot;</param>
+                        </action>
                     </actions>
                 </event-block>
                 <event-block sid="9989192563117218">
@@ -292,6 +298,12 @@
                         <action id="7" name="Set CSS style" sid="625487983911271" type="PlayerInput">
                             <param id="0" name="Property name">&quot;background-color&quot;</param>
                             <param id="1" name="Value">&quot;white&quot;</param>
+                        </action>
+                        <action id="0" name="Play" sid="2826212828291128" type="Audio">
+                            <param id="0" name="Audio file">SFX5</param>
+                            <param id="2" name="Loop">0</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;fx&quot;</param>
                         </action>
                     </actions>
                 </event-block>

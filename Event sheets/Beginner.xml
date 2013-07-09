@@ -308,6 +308,12 @@
                             <param id="0" name="Variable">WordSuccess</param>
                             <param id="1" name="Value">1</param>
                         </action>
+                        <action id="0" name="Play" sid="2353243248008732" type="Audio">
+                            <param id="0" name="Audio file">SquareMotif1</param>
+                            <param id="2" name="Loop">0</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;fx&quot;</param>
+                        </action>
                     </actions>
                 </event-block>
                 <event-block sid="6448275785375761">
@@ -331,6 +337,12 @@
                         <action id="7" name="Set CSS style" sid="427000382501975" type="PlayerInput">
                             <param id="0" name="Property name">&quot;background-color&quot;</param>
                             <param id="1" name="Value">&quot;white&quot;</param>
+                        </action>
+                        <action id="0" name="Play" sid="9492907494100836" type="Audio">
+                            <param id="0" name="Audio file">SFX5</param>
+                            <param id="2" name="Loop">0</param>
+                            <param id="3" name="Volume">-10</param>
+                            <param id="1" name="Tag (optional)">&quot;fx&quot;</param>
                         </action>
                     </actions>
                 </event-block>
@@ -382,7 +394,14 @@
                     <param id="2" name="Value">1</param>
                 </condition>
             </conditions>
-            <actions />
+            <actions>
+                <action id="-15" name="Set visible" sid="1359226511016905" type="BackToMainMenuPopup">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+                <action id="-15" name="Set visible" sid="5795885543031642" type="CorrectText">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+            </actions>
             <sub-events>
                 <event-block sid="9409865793893961">
                     <conditions>
@@ -393,12 +412,6 @@
                         </condition>
                     </conditions>
                     <actions>
-                        <action id="-15" name="Set visible" sid="6483371197410454" type="BackToMainMenuPopup">
-                            <param id="0" name="Visibility">1</param>
-                        </action>
-                        <action id="-15" name="Set visible" sid="4663560575217982" type="CorrectText">
-                            <param id="0" name="Visibility">1</param>
-                        </action>
                         <action id="-15" name="Set visible" sid="8268518247079155" type="Next">
                             <param id="0" name="Visibility">1</param>
                         </action>
@@ -411,12 +424,6 @@
                     <actions>
                         <action id="0" name="Set text" sid="4640339691707891" type="CorrectText">
                             <param id="0" name="Text">&quot;All croertc!&quot;</param>
-                        </action>
-                        <action id="-15" name="Set visible" sid="5345331149655922" type="CorrectText">
-                            <param id="0" name="Visibility">1</param>
-                        </action>
-                        <action id="-15" name="Set visible" sid="1859582342902099" type="BackToMainMenuPopup">
-                            <param id="0" name="Visibility">1</param>
                         </action>
                     </actions>
                 </event-block>
