@@ -149,6 +149,12 @@
                         <action id="-15" name="Set visible" sid="5172408253565634" type="StrawberryImage">
                             <param id="0" name="Visibility">0</param>
                         </action>
+                        <action id="-15" name="Set visible" sid="6221558901032564" type="LosePopup">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="4851767955539973" type="WinPopup">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
                     </actions>
                 </event-block>
                 <event-block sid="7977913963428273">
@@ -366,6 +372,9 @@
                 <action id="-15" name="Set visible" sid="9669836125434863" type="TryAgain">
                     <param id="0" name="Visibility">1</param>
                 </action>
+                <action id="-15" name="Set visible" sid="325280619113818" type="LosePopup">
+                    <param id="0" name="Visibility">1</param>
+                </action>
             </actions>
             <sub-events>
                 <variable constant="0" name="CurrentWordText" sid="8014654314990763" static="0" type="text"></variable>
@@ -399,6 +408,9 @@
                     <param id="0" name="Visibility">1</param>
                 </action>
                 <action id="-15" name="Set visible" sid="5795885543031642" type="CorrectText">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+                <action id="-15" name="Set visible" sid="6533881113649991" type="WinPopup">
                     <param id="0" name="Visibility">1</param>
                 </action>
             </actions>
