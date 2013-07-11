@@ -9,6 +9,7 @@
             </conditions>
             <actions>
                 <action id="-21" name="Reset global variables" sid="5969606942977875" type="System" />
+                <action id="0" name="Clear" sid="6814064493550842" type="CompletedWords" />
             </actions>
         </event-block>
         <event-block sid="5776538721120921">

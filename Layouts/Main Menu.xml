@@ -68,7 +68,7 @@
                     <properties>
                         <text>Laenr To Sepll</text>
                         <initial-visibility>Visible</initial-visibility>
-                        <font>Arial,-48,700,0</font>
+                        <font>Arial,-48,400,0</font>
                         <color>0,0,0</color>
                         <horizontal-alignment>Center</horizontal-alignment>
                         <vertical-alignment>Center</vertical-alignment>
@@ -296,7 +296,7 @@
         </instance>
         <instance type="AdvancedQAs" uid="68">
             <properties>
-                <width>5</width>
+                <width>10</width>
                 <height>2</height>
                 <depth>1</depth>
             </properties>

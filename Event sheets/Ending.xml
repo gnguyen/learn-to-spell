@@ -4,5 +4,20 @@
     <name>Ending</name>
     <events>
         <include>Common</include>
+        <event-block sid="9326515104961881">
+            <conditions>
+                <condition id="-2" name="On start of layout" sid="9797488436137012" type="System" />
+            </conditions>
+            <actions>
+                <action id="5" name="Set web font" sid="460844466844889" type="EndingText">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="8700634523814319" type="EndingText2">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+            </actions>
+        </event-block>
     </events>
 </c2eventsheet>

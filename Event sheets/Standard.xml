@@ -111,6 +111,54 @@
                     <param id="1" name="Y">1</param>
                     <param id="2" name="Value">&quot;Teh uenaximend lfie is nto wroht lvinig&quot;</param>
                 </action>
+                <action id="5" name="Set web font" sid="2826274780155086" type="BackToMainMenuPopup">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="5175300117312814" type="Begin">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="5682293387893467" type="CorrectText">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="6134721409249437" type="IncorrectText">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="7280514939106252" type="Next">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="7673429633878931" type="PhraseCount">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="4167875355661485" type="Prompt">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="2759350632106152" type="Standard">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="1165156494490831" type="StandardInstructions">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="2401177412926352" type="Timer">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="1077191033682238" type="Title">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="7436069131940395" type="TryAgain">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
             </actions>
         </event-block>
         <event-block sid="4001580662118663">
@@ -172,6 +220,9 @@
                         </action>
                         <action id="0" name="Set text" sid="3291706478865002" type="PlayerInput">
                             <param id="0" name="Text">&quot;&quot;</param>
+                        </action>
+                        <action id="4" name="Set enabled" sid="3924698508772488" type="PlayerInput">
+                            <param id="0" name="Mode">1</param>
                         </action>
                         <action id="6" name="Set focused" sid="9940542804988949" type="PlayerInput" />
                         <action id="-15" name="Set visible" sid="4393611062022583" type="LosePopup">
