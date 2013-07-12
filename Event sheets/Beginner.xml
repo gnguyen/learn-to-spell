@@ -69,12 +69,12 @@
                     <param id="2" name="Value">&quot;srtwaebrry&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="5669649353514473" type="BackToMainMenuPopup">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="4659315680261612" type="Begin">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="4499220683580732" type="Beginner">
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
@@ -93,8 +93,8 @@
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="4122217390361313" type="Next">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="7995868442738186" type="PhraseCount">
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
@@ -113,8 +113,8 @@
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="4261302701773514" type="TryAgain">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="7" name="Set CSS style" sid="2607595469873755" type="PlayerInput">
                     <param id="0" name="Property name">&quot;font-family&quot;</param>

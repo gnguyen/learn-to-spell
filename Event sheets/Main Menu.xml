@@ -10,12 +10,12 @@
             </conditions>
             <actions>
                 <action id="5" name="Set web font" sid="1659217817962605" type="Advanced">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="4671162000833215" type="Beginner">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="5718074145624225" type="ClickToStart">
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
@@ -26,12 +26,16 @@
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="5273174239221812" type="Standard">
-                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
-                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
                 <action id="5" name="Set web font" sid="9307225522975611" type="Title">
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
+                <action id="5" name="Set web font" sid="4490514788471298" type="BackToMainMenuPopup">
+                    <param id="0" name="Family name">&quot;Oswald&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Oswald&quot;</param>
                 </action>
             </actions>
             <sub-events>
