@@ -21,6 +21,10 @@
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
                 </action>
+                <action id="5" name="Set web font" sid="9927852967716495" type="CreditsText">
+                    <param id="0" name="Family name">&quot;Kite One&quot;</param>
+                    <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
+                </action>
                 <action id="5" name="Set web font" sid="8878437762863864" type="LockText">
                     <param id="0" name="Family name">&quot;Kite One&quot;</param>
                     <param id="1" name="CSS URL">&quot;http://fonts.googleapis.com/css?family=Kite+One&quot;</param>
@@ -66,6 +70,9 @@
                             <param id="0" name="Visibility">0</param>
                         </action>
                         <action id="-15" name="Set visible" sid="7253598907596744" type="LockImage">
+                            <param id="0" name="Visibility">0</param>
+                        </action>
+                        <action id="-15" name="Set visible" sid="2281346928507504" type="CreditsText">
                             <param id="0" name="Visibility">0</param>
                         </action>
                     </actions>
@@ -125,6 +132,9 @@
                     <param id="0" name="Visibility">1</param>
                 </action>
                 <action id="-15" name="Set visible" sid="7266939671103188" type="LockImage">
+                    <param id="0" name="Visibility">1</param>
+                </action>
+                <action id="-15" name="Set visible" sid="6488731451729704" type="CreditsText">
                     <param id="0" name="Visibility">1</param>
                 </action>
             </actions>
