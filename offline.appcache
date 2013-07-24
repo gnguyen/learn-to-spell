@@ -1,9 +1,8 @@
 ﻿CACHE MANIFEST
-#1373236827
+#1374634143
 index.html
 c2runtime.js
 jquery-2.0.0.min.js
-logo.png
 images\mainmenubackground.png
 images\beginnerbackground.png
 images\standardbackground.png
@@ -15,7 +14,22 @@ images\bananaimage-sheet0.png
 images\lemonimage-sheet0.png
 images\pearimage-sheet0.png
 images\strawberryimage-sheet0.png
-images\crossimage-sheet0.png
+images\deleteimage-sheet0.png
 images\endingbackground.png
+images\staricon-sheet0.png
+images\backicon-sheet0.png
+images\winpopup-sheet0.png
+images\losepopup-sheet0.png
+media\sfx5.m4a
+media\sfx5.ogg
+media\squaremotif1.m4a
+media\squaremotif1.ogg
+media\mattoglseby%20-%201.m4a
+media\mattoglseby%20-%201.ogg
+icon-16.png
+icon-32.png
+icon-114.png
+icon-128.png
+loading-logo.png
 NETWORK:
 *

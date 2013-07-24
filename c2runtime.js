@@ -262,6 +262,23 @@ if (typeof Object.getPrototypeOf !== "function")
 	{
 		return (this.tly + this.try_ + this.bry + this.bly) / 4;
 	};
+	Quad.prototype.intersects_segment = function (x1, y1, x2, y2)
+	{
+		if (this.contains_pt(x1, y1) || this.contains_pt(x2, y2))
+			return true;
+		var a1x, a1y, a2x, a2y;
+		var i;
+		for (i = 0; i < 4; i++)
+		{
+			a1x = this.at(i, true);
+			a1y = this.at(i, false);
+			a2x = this.at(i + 1, true);
+			a2y = this.at(i + 1, false);
+			if (cr.segments_intersect(x1, y1, x2, y2, a1x, a1y, a2x, a2y))
+				return true;
+		}
+		return false;
+	};
 	Quad.prototype.intersects_quad = function (rhs)
 	{
 		var midx = rhs.midX();
@@ -438,6 +455,24 @@ if (typeof Object.getPrototypeOf !== "function")
 		var c2 = Math.cos(a2);
 		return c1 * s2 - s1 * c2 <= 0;
 	};
+	cr.rotatePtAround = function (px, py, a, ox, oy, getx)
+	{
+		if (a === 0)
+			return getx ? px : py;
+		var sin_a = Math.sin(a);
+		var cos_a = Math.cos(a);
+		px -= ox;
+		py -= oy;
+		var left_sin_a = px * sin_a;
+		var top_sin_a = py * sin_a;
+		var left_cos_a = px * cos_a;
+		var top_cos_a = py * cos_a;
+		px = left_cos_a - top_sin_a;
+		py = top_cos_a + left_sin_a;
+		px += ox;
+		py += oy;
+		return getx ? px : py;
+	}
 	cr.distanceTo = function(x1, y1, x2, y2)
 	{
 		var dx = x2 - x1;
@@ -471,6 +506,7 @@ if (typeof Object.getPrototypeOf !== "function")
 				delete obj[p];
 		}
 	};
+	var startup_time = +(new Date());
 	cr.performance_now = function()
 	{
 		if (typeof window["performance"] !== "undefined")
@@ -483,7 +519,7 @@ if (typeof Object.getPrototypeOf !== "function")
 			else if (typeof winperf["msNow"] !== "undefined")
 				return winperf["msNow"]();
 		}
-		return Date.now();
+		return Date.now() - startup_time;
 	};
 	function ObjectSet_()
 	{
@@ -657,14 +693,31 @@ if (typeof Object.getPrototypeOf !== "function")
 		var myptscache = this.pts_cache;
 		if (a2x === myptscache[0] && a2y === myptscache[1])
 			return true;
-		var a1x = -this.cache_width * 5 - 1;
-		var a1y = -this.cache_height * 5 - 1;
-		var a3x = this.cache_width * 5 + 1;
-		var a3y = -1;
+		var i, x, y, len = this.pts_count;
+		var bboxLeft = myptscache[0];
+		var bboxRight = bboxLeft;
+		var bboxTop = myptscache[1];
+		var bboxBottom = bboxTop;
+		for (i = 1; i < len; i++)
+		{
+			x = myptscache[i*2];
+			y = myptscache[i*2+1];
+			if (x < bboxLeft)
+				bboxLeft = x;
+			if (x > bboxRight)
+				bboxRight = x;
+			if (y < bboxTop)
+				bboxTop = y;
+			if (y > bboxBottom)
+				bboxBottom = y;
+		}
+		var a1x = bboxLeft - 110;
+		var a1y = bboxTop - 101;
+		var a3x = bboxRight + 131
+		var a3y = bboxBottom + 120;
 		var b1x, b1y, b2x, b2y;
-		var i, len;
 		var count1 = 0, count2 = 0;
-		for (i = 0, len = this.pts_count; i < len; i++)
+		for (i = 0; i < len; i++)
 		{
 			b1x = myptscache[i*2];
 			b1y = myptscache[i*2+1];
@@ -702,6 +755,24 @@ if (typeof Object.getPrototypeOf !== "function")
 				if (cr.segments_intersect(a1x, a1y, a2x, a2y, b1x, b1y, b2x, b2y))
 					return true;
 			}
+		}
+		return false;
+	};
+	CollisionPoly_.prototype.intersects_segment = function (offx, offy, x1, y1, x2, y2)
+	{
+		var mypts = this.pts_cache;
+		if (this.contains_pt(x1 - offx, y1 - offy))
+			return true;
+		var i, leni;
+		var a1x, a1y, a2x, a2y;
+		for (i = 0, leni = this.pts_count; i < leni; i++)
+		{
+			a1x = mypts[i*2] + offx;
+			a1y = mypts[i*2+1] + offy;
+			a2x = mypts[((i+1)%leni)*2] + offx;
+			a2y = mypts[((i+1)%leni)*2+1] + offy;
+			if (cr.segments_intersect(x1, y1, x2, y2, a1x, a1y, a2x, a2y))
+				return true;
 		}
 		return false;
 	};
@@ -1688,6 +1759,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		return x + 1;
 	}
 	var all_textures = [];
+	var textures_by_src = {};
 	var BF_RGBA8 = 0;
 	var BF_RGB8 = 1;
 	var BF_RGBA4 = 2;
@@ -1695,11 +1767,21 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	var BF_RGB565 = 4;
 	GLWrap_.prototype.loadTexture = function (img, tiling, linearsampling, pixelformat, tiletype)
 	{
+		tiling = !!tiling;
+		linearsampling = !!linearsampling;
+		var tex_key = img.src + "," + tiling + "," + linearsampling + (tiling ? ("," + tiletype) : "");
+		var webGL_texture = null;
+		if (typeof img.src !== "undefined" && textures_by_src.hasOwnProperty(tex_key))
+		{
+			webGL_texture = textures_by_src[tex_key];
+			webGL_texture.c2refcount++;
+			return webGL_texture;
+		}
 		this.endBatch();
 ;
 		var gl = this.gl;
 		var isPOT = (cr.isPOT(img.width) && cr.isPOT(img.height));
-		var webGL_texture = gl.createTexture();
+		webGL_texture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, webGL_texture);
 		gl.pixelStorei(gl["UNPACK_PREMULTIPLY_ALPHA_WEBGL"], true);
 		var internalformat = gl.RGBA;
@@ -1766,7 +1848,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 			if (isPOT)
 			{
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 				gl.generateMipmap(gl.TEXTURE_2D);
 			}
 			else
@@ -1781,7 +1863,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.lastTexture = null;
 		webGL_texture.c2width = img.width;
 		webGL_texture.c2height = img.height;
+		webGL_texture.c2refcount = 1;
+		webGL_texture.c2texkey = tex_key;
 		all_textures.push(webGL_texture);
+		textures_by_src[tex_key] = webGL_texture;
 		return webGL_texture;
 	};
 	GLWrap_.prototype.createEmptyTexture = function (w, h, linearsampling, _16bit)
@@ -1815,11 +1900,18 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	{
 		if (!tex)
 			return;
+		if (typeof tex.c2refcount !== "undefined" && tex.c2refcount > 1)
+		{
+			tex.c2refcount--;
+			return;
+		}
 		this.endBatch();
 		this.gl.bindTexture(this.gl.TEXTURE_2D, null);
 		this.lastTexture = null;
-		this.gl.deleteTexture(tex);
 		cr.arrayFindRemove(all_textures, tex);
+		if (typeof tex.c2texkey !== "undefined")
+			delete textures_by_src[tex.c2texkey];
+		this.gl.deleteTexture(tex);
 	};
 	GLWrap_.prototype.estimateVRAM = function ()
 	{
@@ -1893,6 +1985,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.isMobile = (this.isPhoneGap || this.isAppMobi || this.isCocoonJs || this.isAndroid || this.isiOS || this.isWindowsPhone8 || this.isBlackberry10 || this.isTizen);
 		if (!this.isMobile)
 			this.isMobile = /(blackberry|bb10|playbook|palm|symbian|nokia|windows\s+ce|phone|mobile|tablet)/i.test(navigator.userAgent);
+		if (typeof cr_is_preview !== "undefined" && !this.isNodeWebkit && (window.location.search === "?nw" || /nodewebkit/i.test(navigator.userAgent)))
+		{
+			this.isNodeWebkit = true;
+		}
 		this.canvas = canvas;
 		this.canvasdiv = document.getElementById("c2canvasdiv");
 		this.gl = null;
@@ -1902,6 +1998,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.canvas.onselectstart = function (e) { if (e.preventDefault) e.preventDefault(); return false; };
 		if (this.isDirectCanvas)
 			window["c2runtime"] = this;
+		if (this.isNodeWebkit)
+		{
+			window.ondragover = function(e) { e.preventDefault(); return false; };
+			window.ondrop = function(e) { e.preventDefault(); return false; };
+		}
 		this.width = canvas.width;
 		this.height = canvas.height;
 		this.lastwidth = this.width;
@@ -2140,6 +2241,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		if (typeof cr_is_preview !== "undefined")
 		{
+			if (this.isCocoonJs)
+				console.log("[Construct 2] In preview-over-wifi via CocoonJS mode");
 			if (window.location.search === "?continuous")
 			{
 				cr.logexport("Reloading for continuous preview");
@@ -2348,6 +2451,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var i, len;
 		if (s && !this.isSuspended)
 		{
+			cr.logexport("[Construct 2] Suspending");
 			this.isSuspended = true;			// next tick will be last
 			if (this.raf_id !== 0 && caf)		// note: CocoonJS does not implement cancelAnimationFrame
 				caf(this.raf_id);
@@ -2358,6 +2462,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		else if (!s && this.isSuspended)
 		{
+			cr.logexport("[Construct 2] Resuming");
 			this.isSuspended = false;
 			this.last_tick_time = cr.performance_now();	// ensure first tick is a zero-dt one
 			this.last_fps_time = cr.performance_now();	// reset FPS counter
@@ -2379,7 +2484,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.first_layout = pm[1];
 		this.fullscreen_mode = pm[11];	// 0 = off, 1 = crop, 2 = scale inner, 3 = scale outer, 4 = letterbox scale, 5 = integer letterbox scale
 		this.fullscreen_mode_set = pm[11];
-		if (this.isDomFree && pm[11] >= 4)
+		if (this.isDomFree && (pm[11] >= 4 || pm[11] === 0))
 		{
 			cr.logexport("[Construct 2] Letterbox scale fullscreen modes are not supported on this platform - falling back to 'Scale outer'");
 			this.fullscreen_mode = 3;
@@ -2390,7 +2495,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		if (this.loaderstyle === 0)
 		{
 			this.loaderlogo = new Image();
-			this.loaderlogo.src = "logo.png";
+			this.loaderlogo.src = "loading-logo.png";
 		}
 		this.next_uid = pm[20];
 		this.system = new cr.system_object(this);
@@ -2807,6 +2912,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	  window["oRequestAnimationFrame"];
 	Runtime.prototype.tick = function ()
 	{
+		if (!this.running_layout)
+			return;
 		if (this.isArcade)
 		{
 			var curwidth = jQuery(window).width();
@@ -2818,7 +2925,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				this["setSize"](curwidth, curheight);
 			}
 		}
-;
 		var logic_start = cr.performance_now();
 		if (this.isloading)
 		{
@@ -3000,14 +3106,24 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	Runtime.prototype.doChangeLayout = function (changeToLayout)
 	{
 ;
+		var prev_layout = this.running_layout;
 		this.running_layout.stopRunning();
 		var i, len, j, lenj, k, lenk, type, inst, binst;
-		for (i = 0, len = this.types_by_index.length; i < len; i++)
+		if (this.glwrap)
 		{
-			type = this.types_by_index[i];
-			if (type.unloadTextures && changeToLayout.initial_types.indexOf(type) === -1)
-				type.unloadTextures();
+			for (i = 0, len = this.types_by_index.length; i < len; i++)
+			{
+				type = this.types_by_index[i];
+				if (type.is_family)
+					continue;
+				if (type.unloadTextures && (!type.global || type.instances.length === 0) && changeToLayout.initial_types.indexOf(type) === -1)
+				{
+					type.unloadTextures();
+				}
+			}
 		}
+		if (prev_layout == changeToLayout)
+			this.system.waits.length = 0;
 		changeToLayout.startRunning();
 		for (i = 0, len = this.types_by_index.length; i < len; i++)
 		{
@@ -3207,6 +3323,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			return null;
 		if (is_world && !this.glwrap && initial_inst[0][11] === 11)
 			return null;
+		var original_layer = layer;
 		if (!is_world)
 			layer = null;
 		var inst;
@@ -3376,7 +3493,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 					{
 						return null;
 					}
-					inst.siblings.push(this.createInstanceFromInit(type.container[i].default_instance, layer, false, is_world ? inst.x : sx, is_world ? inst.y : sy, true));
+					inst.siblings.push(this.createInstanceFromInit(type.container[i].default_instance, original_layer, false, is_world ? inst.x : sx, is_world ? inst.y : sy, true));
 				}
 				for (i = 0, len = inst.siblings.length; i < len; i++)
 				{
@@ -3603,13 +3720,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 	};
 	var tmpQuad = new cr.quad();
+	var tmpRect = new cr.rect(0, 0, 0, 0);
 	Runtime.prototype.testRectOverlap = function (r, b)
 	{
 		if (!b || !b.collisionsEnabled)
 			return false;
 		b.update_bbox();
 		var layerb = b.layer;
-		var i, len, x, y, haspolya, haspolyb, polya, polyb;
+		var haspolyb, polyb;
 		if (!b.bbox.intersects_rect(r))
 			return false;
 		tmpQuad.set_from_rect(r);
@@ -3622,6 +3740,24 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		tmpQuad.offset(-r.left, -r.top);
 		this.temp_poly.set_from_quad(tmpQuad, 0, 0, 1, 1);
 		return b.collision_poly.intersects_poly(this.temp_poly, r.left - b.x, r.top - b.y);
+	};
+	Runtime.prototype.testSegmentOverlap = function (x1, y1, x2, y2, b)
+	{
+		if (!b || !b.collisionsEnabled)
+			return false;
+		b.update_bbox();
+		var layerb = b.layer;
+		var haspolyb, polyb;
+		tmpRect.set(cr.min(x1, x2), cr.min(y1, y2), cr.max(x1, x2), cr.max(y1, y2));
+		if (!b.bbox.intersects_rect(tmpRect))
+			return false;
+		if (!b.bquad.intersects_segment(x1, y1, x2, y2))
+			return false;
+		haspolyb = (b.collision_poly && !b.collision_poly.is_empty());
+		if (!haspolyb)
+			return true;
+		b.collision_poly.cache_poly(b.width, b.height, b.angle);
+		return b.collision_poly.intersects_segment(b.x, b.y, x1, y1, x2, y2);
 	};
 	Runtime.prototype.typeHasBehavior = function (t, b)
 	{
@@ -3844,7 +3980,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var oldy = inst.y;
 		var dir = 0;
 		var dx = 0, dy = 0;
-		var last_overlapped = null;
+		var last_overlapped = this.testOverlapSolid(inst);
+		if (!last_overlapped)
+			return true;		// already clear of solids
 		while (dist <= max_dist)
 		{
 			switch (dir) {
@@ -3994,8 +4132,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var i, leni, r;
         for (i = 0, leni = includes.length; i < leni; i++)
         {
-            r = this.triggerOnSheet(method, inst, includes[i], value);
-            ret = ret || r;
+			if (includes[i].isActive())
+			{
+				r = this.triggerOnSheet(method, inst, includes[i].include_sheet, value);
+				ret = ret || r;
+			}
         }
 		if (!inst)
 		{
@@ -4287,10 +4428,17 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	function doContinuousPreviewReload()
 	{
 		cr.logexport("Reloading for continuous preview");
-		if (window.location.search === "?continuous")
-			window.location.reload(true);
+		if (!!window["c2cocoonjs"])
+		{
+			CocoonJS["App"]["reload"]();
+		}
 		else
-			window.location = window.location + "?continuous";
+		{
+			if (window.location.search === "?continuous")
+				window.location.reload(true);
+			else
+				window.location = window.location + "?continuous";
+		}
 	};
 	Runtime.prototype.handleSaveLoad = function ()
 	{
@@ -4873,6 +5021,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		window.addEventListener("orientationchange", function () {
 			window["c2runtime"]["setSize"](window.innerWidth, window.innerHeight);
 		});
+		window["c2runtime"]["setSize"](window.innerWidth, window.innerHeight);
 		return rt;
 	};
 }());
@@ -5030,6 +5179,7 @@ window["cr_setSuspended"] = function(s)
 		}
 		var layer;
 		created_instances.length = 0;
+		this.boundScrolling();
 		for (i = 0, len = this.layers.length; i < len; i++)
 		{
 			layer = this.layers[i];
@@ -5327,6 +5477,11 @@ window["cr_setSuspended"] = function(s)
 			this.scrollY = y;
 			this.runtime.redraw = true;
 		}
+	};
+	Layout.prototype.boundScrolling = function ()
+	{
+		this.scrollToX(this.scrollX);
+		this.scrollToY(this.scrollY);
 	};
 	Layout.prototype.renderEffectChain = function (glw, layer, inst, rendertarget)
 	{
@@ -6094,6 +6249,18 @@ window["cr_setSuspended"] = function(s)
 		}
 		return getx ? x : y;
 	};
+	Layer.prototype.rotatePt = function (x_, y_, getx)
+	{
+		if (this.getAngle() === 0)
+			return getx ? x_ : y_;
+		var nx = this.layerToCanvas(x_, y_, true);
+		var ny = this.layerToCanvas(x_, y_, false);
+		this.disableAngle = true;
+		var px = this.canvasToLayer(nx, ny, true);
+		var py = this.canvasToLayer(nx, ny, true);
+		this.disableAngle = false;
+		return getx ? px : py;
+	};
 	Layer.prototype.saveToJSON = function ()
 	{
 		var i, len, et;
@@ -6830,8 +6997,8 @@ window["cr_setSuspended"] = function(s)
 	{
 		var i, len;
 		for (i = 0, len = this.parameters.length; i < len; i++)
-			this.results[i] = this.parameters[i].get();
-		var ret = this.func.apply(this.type, this.results);
+			this.results[i] = this.parameters[i].get(i);
+		var ret = this.func.apply(this.behaviortype ? this.behaviortype : this.type, this.results);
 		this.type.applySolToContainer();
 		return ret;
 	};
@@ -7349,12 +7516,16 @@ window["cr_setSuspended"] = function(s)
 		this.include_sheet = null;		// determined in postInit
 		this.include_sheet_name = m[1];
 	};
+	EventInclude.prototype.toString = function ()
+	{
+		return "include:" + this.include_sheet.toString();
+	};
 	EventInclude.prototype.postInit = function ()
 	{
         this.include_sheet = this.runtime.eventsheets[this.include_sheet_name];
 ;
 ;
-        this.sheet.includes.add(this.include_sheet);
+        this.sheet.includes.add(this);
 		this.solModifiers = findMatchingSolModifier(this.solModifiers);
 	};
 	EventInclude.prototype.run = function ()
@@ -7365,6 +7536,20 @@ window["cr_setSuspended"] = function(s)
             this.include_sheet.run();
         if (this.parent)
             this.runtime.popSol(this.runtime.types_by_index);
+	};
+	EventInclude.prototype.isActive = function ()
+	{
+		var p = this.parent;
+		while (p)
+		{
+			if (p.group)
+			{
+				if (!this.runtime.activeGroups[p.group_name.toLowerCase()])
+					return false;
+			}
+			p = p.parent;
+		}
+		return true;
 	};
 	cr.eventinclude = EventInclude;
 	function EventStackFrame()
@@ -8204,22 +8389,46 @@ cr.system_object.prototype.loadFromJSON = function (o)
 		var solModifierAfterCnds = current_frame.isModifierAfterCnds();
         var current_loop = this.runtime.pushLoopStack(name);
         var i;
-		if (solModifierAfterCnds)
+		if (end < start)
 		{
-			for (i = start; i <= end && !current_loop.stopped; i++)  // inclusive to end
+			if (solModifierAfterCnds)
 			{
-				this.runtime.pushCopySol(current_event.solModifiers);
-				current_loop.index = i;
-				current_event.retrigger();
-				this.runtime.popSol(current_event.solModifiers);
+				for (i = start; i >= end && !current_loop.stopped; --i)  // inclusive to end
+				{
+					this.runtime.pushCopySol(current_event.solModifiers);
+					current_loop.index = i;
+					current_event.retrigger();
+					this.runtime.popSol(current_event.solModifiers);
+				}
+			}
+			else
+			{
+				for (i = start; i >= end && !current_loop.stopped; --i)  // inclusive to end
+				{
+					current_loop.index = i;
+					current_event.retrigger();
+				}
 			}
 		}
 		else
 		{
-			for (i = start; i <= end && !current_loop.stopped; i++)  // inclusive to end
+			if (solModifierAfterCnds)
 			{
-				current_loop.index = i;
-				current_event.retrigger();
+				for (i = start; i <= end && !current_loop.stopped; ++i)  // inclusive to end
+				{
+					this.runtime.pushCopySol(current_event.solModifiers);
+					current_loop.index = i;
+					current_event.retrigger();
+					this.runtime.popSol(current_event.solModifiers);
+				}
+			}
+			else
+			{
+				for (i = start; i <= end && !current_loop.stopped; ++i)  // inclusive to end
+				{
+					current_loop.index = i;
+					current_event.retrigger();
+				}
 			}
 		}
         this.runtime.popLoopStack();
@@ -8290,6 +8499,7 @@ cr.system_object.prototype.loadFromJSON = function (o)
 				current_event.retrigger();
 			}
 		}
+		instances.length = 0;
         this.runtime.popLoopStack();
 		foreach_instanceptr--;
 		return false;
@@ -8383,10 +8593,82 @@ cr.system_object.prototype.loadFromJSON = function (o)
 				current_event.retrigger();
 			}
 		}
+		instances.length = 0;
         this.runtime.popLoopStack();
 		foreach_instanceptr--;
 		return false;
     };
+	SysCnds.prototype.PickByComparison = function (obj_, exp_, cmp_, val_)
+	{
+		var i, len, k, inst;
+		if (!obj_)
+			return;
+		foreach_instanceptr++;
+		if (foreach_instancestack.length === foreach_instanceptr)
+			foreach_instancestack.push([]);
+		var tmp_instances = foreach_instancestack[foreach_instanceptr];
+		var sol = obj_.getCurrentSol();
+		cr.shallowAssignArray(tmp_instances, sol.getObjects());
+		if (sol.select_all)
+			sol.else_instances.length = 0;
+		var current_condition = this.runtime.getCurrentCondition();
+		for (i = 0, k = 0, len = tmp_instances.length; i < len; i++)
+		{
+			inst = tmp_instances[i];
+			tmp_instances[k] = inst;
+			exp_ = current_condition.parameters[1].get(i);
+			val_ = current_condition.parameters[3].get(i);
+			if (cr.do_cmp(exp_, cmp_, val_))
+			{
+				k++;
+			}
+			else
+			{
+				sol.else_instances.push(inst);
+			}
+		}
+		tmp_instances.length = k;
+		sol.select_all = false;
+		cr.shallowAssignArray(sol.instances, tmp_instances);
+		tmp_instances.length = 0;
+		foreach_instanceptr--;
+		return !!sol.instances.length;
+	};
+	SysCnds.prototype.PickByEvaluate = function (obj_, exp_)
+	{
+		var i, len, k, inst;
+		if (!obj_)
+			return;
+		foreach_instanceptr++;
+		if (foreach_instancestack.length === foreach_instanceptr)
+			foreach_instancestack.push([]);
+		var tmp_instances = foreach_instancestack[foreach_instanceptr];
+		var sol = obj_.getCurrentSol();
+		cr.shallowAssignArray(tmp_instances, sol.getObjects());
+		if (sol.select_all)
+			sol.else_instances.length = 0;
+		var current_condition = this.runtime.getCurrentCondition();
+		for (i = 0, k = 0, len = tmp_instances.length; i < len; i++)
+		{
+			inst = tmp_instances[i];
+			tmp_instances[k] = inst;
+			exp_ = current_condition.parameters[1].get(i);
+			if (exp_)
+			{
+				k++;
+			}
+			else
+			{
+				sol.else_instances.push(inst);
+			}
+		}
+		tmp_instances.length = k;
+		sol.select_all = false;
+		cr.shallowAssignArray(sol.instances, tmp_instances);
+		tmp_instances.length = 0;
+		foreach_instanceptr--;
+		return !!sol.instances.length;
+	};
     SysCnds.prototype.TriggerOnce = function ()
     {
         var cndextra = this.runtime.getCurrentCondition().extra;
@@ -8402,11 +8684,15 @@ cr.system_object.prototype.loadFromJSON = function (o)
         var cnd = this.runtime.getCurrentCondition();
         var last_time = cnd.extra.Every_lastTime || 0;
         var cur_time = this.runtime.kahanTime.sum;
-        if (cur_time >= last_time + seconds)
+		if (typeof cnd.extra.Every_seconds === "undefined")
+			cnd.extra.Every_seconds = seconds;
+		var this_seconds = cnd.extra.Every_seconds;
+        if (cur_time >= last_time + this_seconds)
         {
-            cnd.extra.Every_lastTime = last_time + seconds;
-			if (cur_time >= cnd.extra.Every_lastTime + seconds)
+            cnd.extra.Every_lastTime = last_time + this_seconds;
+			if (cur_time >= cnd.extra.Every_lastTime + this_seconds)
 				cnd.extra.Every_lastTime = cur_time;
+			cnd.extra.Every_seconds = seconds;
             return true;
         }
         else
@@ -8575,9 +8861,56 @@ cr.system_object.prototype.loadFromJSON = function (o)
 			return rt.isPhoneGap;
 		case 10:	// Scirra Arcade
 			return rt.isArcade;
+		case 11:	// node-webkit
+			return rt.isNodeWebkit;
 		default:	// should not be possible
 			return false;
 		}
+	};
+	var cacheRegex = null;
+	var lastRegex = "";
+	var lastFlags = "";
+	function getRegex(regex_, flags_)
+	{
+		if (!cacheRegex || regex_ !== lastRegex || flags_ !== lastFlags)
+		{
+			cacheRegex = new RegExp(regex_, flags_);
+			lastRegex = regex_;
+			lastFlags = flags_;
+		}
+		cacheRegex.lastIndex = 0;		// reset
+		return cacheRegex;
+	};
+	SysCnds.prototype.RegexTest = function (str_, regex_, flags_)
+	{
+		var regex = getRegex(regex_, flags_);
+		return regex.test(str_);
+	};
+	var tmp_arr = [];
+	SysCnds.prototype.PickOverlappingPoint = function (obj_, x_, y_)
+	{
+		if (!obj_)
+            return false;
+        var sol = obj_.getCurrentSol();
+        var instances = sol.getObjects();
+		cr.shallowAssignArray(tmp_arr, instances);
+		var cnd = this.runtime.getCurrentCondition();
+		var i, len, inst, pick;
+		if (sol.select_all)
+			sol.else_instances.length = 0;
+		sol.select_all = false;
+		sol.instances.length = 0;
+		for (i = 0, len = tmp_arr.length; i < len; ++i)
+		{
+			inst = tmp_arr[i];
+			pick = cr.xor(inst.contains_pt(x_, y_), cnd.inverted);
+			if (pick)
+				sol.instances.push(inst);
+			else
+				sol.else_instances.push(inst);
+		}
+		obj_.applySolToContainer();
+		return cr.xor(!!sol.instances.length, cnd.inverted);
 	};
 	sysProto.cnds = new SysCnds();
     function SysActs() {};
@@ -8663,6 +8996,7 @@ cr.system_object.prototype.loadFromJSON = function (o)
 		if (this.runtime.running_layout.scale !== s)
 		{
 			this.runtime.running_layout.scale = s;
+			this.runtime.running_layout.boundScrolling();
 			this.runtime.redraw = true;
 		}
 	};
@@ -9511,6 +9845,50 @@ cr.system_object.prototype.loadFromJSON = function (o)
 		else
 			ret.set_float(0);
 	};
+	SysExps.prototype.regexsearch = function (ret, str_, regex_, flags_)
+	{
+		var regex = getRegex(regex_, flags_);
+		ret.set_int(str_ ? str_.search(regex) : -1);
+	};
+	SysExps.prototype.regexreplace = function (ret, str_, regex_, flags_, replace_)
+	{
+		var regex = getRegex(regex_, flags_);
+		ret.set_string(str_ ? str_.replace(regex, replace_) : "");
+	};
+	var regexMatches = [];
+	var lastMatchesStr = "";
+	var lastMatchesRegex = "";
+	var lastMatchesFlags = "";
+	function updateRegexMatches(str_, regex_, flags_)
+	{
+		if (str_ === lastMatchesStr && regex_ === lastMatchesRegex && flags_ === lastMatchesFlags)
+			return;
+		var regex = getRegex(regex_, flags_);
+		regexMatches = str_.match(regex);
+		lastMatchesStr = str_;
+		lastMatchesRegex = regex_;
+		lastMatchesFlags = flags_;
+	};
+	SysExps.prototype.regexmatchcount = function (ret, str_, regex_, flags_)
+	{
+		var regex = getRegex(regex_, flags_);
+		updateRegexMatches(str_, regex_, flags_);
+		ret.set_int(regexMatches ? regexMatches.length : 0);
+	};
+	SysExps.prototype.regexmatchat = function (ret, str_, regex_, flags_, index_)
+	{
+		index_ = Math.floor(index_);
+		var regex = getRegex(regex_, flags_);
+		updateRegexMatches(str_, regex_, flags_);
+		if (!regexMatches || index_ < 0 || index_ >= regexMatches.length)
+			ret.set_string("");
+		else
+			ret.set_string(regexMatches[index_]);
+	};
+	SysExps.prototype.infinity = function (ret)
+	{
+		ret.set_float(Infinity);
+	};
 	sysProto.exps = new SysExps();
 	sysProto.runWaits = function ()
 	{
@@ -9864,6 +10242,29 @@ cr.add_common_aces = function (m)
         {
             return this.instance_vars[iv];
         };
+		cnds.PickInstVarHiLow = function (which, iv)
+		{
+			var sol = this.getCurrentSol();
+			var instances = sol.getObjects();
+			if (!instances.length)
+				return false;
+			var inst = instances[0];
+			var pickme = inst;
+			var val = inst.instance_vars[iv];
+			var i, len, v;
+			for (i = 1, len = instances.length; i < len; i++)
+			{
+				inst = instances[i];
+				v = inst.instance_vars[iv];
+				if ((which === 0 && v < val) || (which === 1 && v > val))
+				{
+					val = v;
+					pickme = inst;
+				}
+			}
+			sol.pick_one(pickme);
+			return true;
+		};
 		cnds.PickByUID = function (u)
 		{
 			var i, len, j, inst, families, instances, sol;
@@ -9909,6 +10310,9 @@ cr.add_common_aces = function (m)
 				inst = this.runtime.getObjectByUID(u);
 				if (!inst)
 					return false;
+				sol = this.getCurrentSol();
+				if (!sol.select_all && sol.instances.indexOf(inst) === -1)
+					return false;		// not picked
 				if (this.is_family)
 				{
 					families = inst.type.families;
@@ -9916,7 +10320,6 @@ cr.add_common_aces = function (m)
 					{
 						if (families[i] === this)
 						{
-							sol = this.getCurrentSol();
 							sol.pick_one(inst);
 							return true;
 						}
@@ -9924,7 +10327,6 @@ cr.add_common_aces = function (m)
 				}
 				else if (inst.type === this)
 				{
-					sol = this.getCurrentSol();
 					sol.pick_one(inst);
 					return true;
 				}
@@ -11143,6 +11545,2710 @@ cr.plugins_.Arr = function(runtime)
 }());
 ;
 ;
+cr.plugins_.Audio = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var pluginProto = cr.plugins_.Audio.prototype;
+	pluginProto.Type = function(plugin)
+	{
+		this.plugin = plugin;
+		this.runtime = plugin.runtime;
+	};
+	var typeProto = pluginProto.Type.prototype;
+	typeProto.onCreate = function()
+	{
+	};
+	var audRuntime = null;
+	var audInst = null;
+	var audTag = "";
+	var appPath = "";			// for PhoneGap only
+	var API_HTML5 = 0;
+	var API_WEBAUDIO = 1;
+	var API_PHONEGAP = 2;
+	var API_APPMOBI = 3;
+	var api = API_HTML5;
+	var context = null;
+	var audioBuffers = [];		// cache of buffers
+	var audioInstances = [];	// cache of instances
+	var lastAudio = null;
+	var useOgg = false;			// determined at create time
+	var timescale_mode = 0;
+	var silent = false;
+	var masterVolume = 1;
+	var listenerX = 0;
+	var listenerY = 0;
+	var panningModel = 1;		// HRTF
+	var distanceModel = 1;		// Inverse
+	var refDistance = 10;
+	var maxDistance = 10000;
+	var rolloffFactor = 1;
+	var micSource = null;
+	var micTag = "";
+	function dbToLinear(x)
+	{
+		var v = dbToLinear_nocap(x);
+		if (v < 0)
+			v = 0;
+		if (v > 1)
+			v = 1;
+		return v;
+	};
+	function linearToDb(x)
+	{
+		if (x < 0)
+			x = 0;
+		if (x > 1)
+			x = 1;
+		return linearToDb_nocap(x);
+	};
+	function dbToLinear_nocap(x)
+	{
+		return Math.pow(10, x / 20);
+	};
+	function linearToDb_nocap(x)
+	{
+		return (Math.log(x) / Math.log(10)) * 20;
+	};
+	var effects = {};
+	function getDestinationForTag(tag)
+	{
+		tag = tag.toLowerCase();
+		if (effects.hasOwnProperty(tag))
+		{
+			if (effects[tag].length)
+				return effects[tag][0].getInputNode();
+		}
+		return context["destination"];
+	};
+	function createGain()
+	{
+		if (context["createGain"])
+			return context["createGain"]();
+		else
+			return context["createGainNode"]();
+	};
+	function createDelay(d)
+	{
+		if (context["createDelay"])
+			return context["createDelay"](d);
+		else
+			return context["createDelayNode"](d);
+	};
+	function startSource(s)
+	{
+		if (s["start"])
+			s["start"](0);
+		else
+			s["noteOn"](0);
+	};
+	function startSourceAt(s, x, d)
+	{
+		if (s["start"])
+			s["start"](0, x);
+		else
+			s["noteGrainOn"](0, x, d - x);
+	};
+	function stopSource(s)
+	{
+		if (s["stop"])
+			s["stop"](0);
+		else
+			s["noteOff"](0);
+	};
+	function setAudioParam(ap, value, ramp, time)
+	{
+		if (!ap)
+			return;		// iOS is missing some parameters
+		ap["cancelScheduledValues"](0);
+		if (time === 0)
+		{
+			ap["value"] = value;
+			return;
+		}
+		var curTime = context["currentTime"];
+		time += curTime;
+		switch (ramp) {
+		case 0:		// step
+			ap["setValueAtTime"](value, time);
+			break;
+		case 1:		// linear
+			ap["setValueAtTime"](ap["value"], curTime);		// to set what to ramp from
+			ap["linearRampToValueAtTime"](value, time);
+			break;
+		case 2:		// exponential
+			ap["setValueAtTime"](ap["value"], curTime);		// to set what to ramp from
+			ap["exponentialRampToValueAtTime"](value, time);
+			break;
+		}
+	};
+	var filterTypes = ["lowpass", "highpass", "bandpass", "lowshelf", "highshelf", "peaking", "notch", "allpass"];
+	function FilterEffect(type, freq, detune, q, gain, mix)
+	{
+		this.type = "filter";
+		this.params = [type, freq, detune, q, gain, mix];
+		this.inputNode = createGain();
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix;
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - mix;
+		this.filterNode = context["createBiquadFilter"]();
+		if (typeof this.filterNode["type"] === "number")
+			this.filterNode["type"] = type;
+		else
+			this.filterNode["type"] = filterTypes[type];
+		this.filterNode["frequency"]["value"] = freq;
+		if (this.filterNode["detune"])		// iOS 6 doesn't have detune yet
+			this.filterNode["detune"]["value"] = detune;
+		this.filterNode["Q"]["value"] = q;
+		this.filterNode["gain"]["value"] = gain;
+		this.inputNode["connect"](this.filterNode);
+		this.inputNode["connect"](this.dryNode);
+		this.filterNode["connect"](this.wetNode);
+	};
+	FilterEffect.prototype.connectTo = function (node)
+	{
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+	};
+	FilterEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.filterNode["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.dryNode["disconnect"]();
+	};
+	FilterEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	FilterEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[4] = value;
+			setAudioParam(this.wetNode["gain"], value, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - value, ramp, time);
+			break;
+		case 1:		// filter frequency
+			this.params[0] = value;
+			setAudioParam(this.filterNode["frequency"], value, ramp, time);
+			break;
+		case 2:		// filter detune
+			this.params[1] = value;
+			setAudioParam(this.filterNode["detune"], value, ramp, time);
+			break;
+		case 3:		// filter Q
+			this.params[2] = value;
+			setAudioParam(this.filterNode["Q"], value, ramp, time);
+			break;
+		case 4:		// filter/delay gain (note value is in dB here)
+			this.params[3] = value;
+			setAudioParam(this.filterNode["gain"], value, ramp, time);
+			break;
+		}
+	};
+	function DelayEffect(delayTime, delayGain, mix)
+	{
+		this.type = "delay";
+		this.params = [delayTime, delayGain, mix];
+		this.inputNode = createGain();
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix;
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - mix;
+		this.mainNode = createGain();
+		this.delayNode = createDelay(delayTime);
+		this.delayNode["delayTime"]["value"] = delayTime;
+		this.delayGainNode = createGain();
+		this.delayGainNode["gain"]["value"] = delayGain;
+		this.inputNode["connect"](this.mainNode);
+		this.inputNode["connect"](this.dryNode);
+		this.mainNode["connect"](this.wetNode);
+		this.mainNode["connect"](this.delayNode);
+		this.delayNode["connect"](this.delayGainNode);
+		this.delayGainNode["connect"](this.mainNode);
+	};
+	DelayEffect.prototype.connectTo = function (node)
+	{
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+	};
+	DelayEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.mainNode["disconnect"]();
+		this.delayNode["disconnect"]();
+		this.delayGainNode["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.dryNode["disconnect"]();
+	};
+	DelayEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	DelayEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[2] = value;
+			setAudioParam(this.wetNode["gain"], value, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - value, ramp, time);
+			break;
+		case 4:		// filter/delay gain (note value is passed in dB but needs to be linear here)
+			this.params[1] = dbToLinear(value);
+			setAudioParam(this.delayGainNode["gain"], dbToLinear(value), ramp, time);
+			break;
+		case 5:		// delay time
+			this.params[0] = value;
+			setAudioParam(this.delayNode["delayTime"], value, ramp, time);
+			break;
+		}
+	};
+	function ConvolveEffect(buffer, normalize, mix, src)
+	{
+		this.type = "convolve";
+		this.params = [normalize, mix, src];
+		this.inputNode = createGain();
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix;
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - mix;
+		this.convolveNode = context["createConvolver"]();
+		if (buffer)
+		{
+			this.convolveNode["normalize"] = normalize;
+			this.convolveNode["buffer"] = buffer;
+		}
+		this.inputNode["connect"](this.convolveNode);
+		this.inputNode["connect"](this.dryNode);
+		this.convolveNode["connect"](this.wetNode);
+	};
+	ConvolveEffect.prototype.connectTo = function (node)
+	{
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+	};
+	ConvolveEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.convolveNode["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.dryNode["disconnect"]();
+	};
+	ConvolveEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	ConvolveEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[1] = value;
+			setAudioParam(this.wetNode["gain"], value, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - value, ramp, time);
+			break;
+		}
+	};
+	function FlangerEffect(delay, modulation, freq, feedback, mix)
+	{
+		this.type = "flanger";
+		this.params = [delay, modulation, freq, feedback, mix];
+		this.inputNode = createGain();
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - (mix / 2);
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix / 2;
+		this.feedbackNode = createGain();
+		this.feedbackNode["gain"]["value"] = feedback;
+		this.delayNode = createDelay(delay + modulation);
+		this.delayNode["delayTime"]["value"] = delay;
+		this.oscNode = context["createOscillator"]();
+		this.oscNode["frequency"]["value"] = freq;
+		this.oscGainNode = createGain();
+		this.oscGainNode["gain"]["value"] = modulation;
+		this.inputNode["connect"](this.delayNode);
+		this.inputNode["connect"](this.dryNode);
+		this.delayNode["connect"](this.wetNode);
+		this.delayNode["connect"](this.feedbackNode);
+		this.feedbackNode["connect"](this.delayNode);
+		this.oscNode["connect"](this.oscGainNode);
+		this.oscGainNode["connect"](this.delayNode["delayTime"]);
+		startSource(this.oscNode);
+	};
+	FlangerEffect.prototype.connectTo = function (node)
+	{
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+	};
+	FlangerEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.delayNode["disconnect"]();
+		this.oscNode["disconnect"]();
+		this.oscGainNode["disconnect"]();
+		this.dryNode["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.feedbackNode["disconnect"]();
+	};
+	FlangerEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	FlangerEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[4] = value;
+			setAudioParam(this.wetNode["gain"], value / 2, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - (value / 2), ramp, time);
+			break;
+		case 6:		// modulation
+			this.params[1] = value / 1000;
+			setAudioParam(this.oscGainNode["gain"], value / 1000, ramp, time);
+			break;
+		case 7:		// modulation frequency
+			this.params[2] = value;
+			setAudioParam(this.oscNode["frequency"], value, ramp, time);
+			break;
+		case 8:		// feedback
+			this.params[3] = value / 100;
+			setAudioParam(this.feedbackNode["gain"], value / 100, ramp, time);
+			break;
+		}
+	};
+	function PhaserEffect(freq, detune, q, modulation, modfreq, mix)
+	{
+		this.type = "phaser";
+		this.params = [freq, detune, q, modulation, modfreq, mix];
+		this.inputNode = createGain();
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - (mix / 2);
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix / 2;
+		this.filterNode = context["createBiquadFilter"]();
+		if (typeof this.filterNode["type"] === "number")
+			this.filterNode["type"] = 7;	// all-pass
+		else
+			this.filterNode["type"] = "allpass";
+		this.filterNode["frequency"]["value"] = freq;
+		if (this.filterNode["detune"])		// iOS 6 doesn't have detune yet
+			this.filterNode["detune"]["value"] = detune;
+		this.filterNode["Q"]["value"] = q;
+		this.oscNode = context["createOscillator"]();
+		this.oscNode["frequency"]["value"] = modfreq;
+		this.oscGainNode = createGain();
+		this.oscGainNode["gain"]["value"] = modulation;
+		this.inputNode["connect"](this.filterNode);
+		this.inputNode["connect"](this.dryNode);
+		this.filterNode["connect"](this.wetNode);
+		this.oscNode["connect"](this.oscGainNode);
+		this.oscGainNode["connect"](this.filterNode["frequency"]);
+		startSource(this.oscNode);
+	};
+	PhaserEffect.prototype.connectTo = function (node)
+	{
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+	};
+	PhaserEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.filterNode["disconnect"]();
+		this.oscNode["disconnect"]();
+		this.oscGainNode["disconnect"]();
+		this.dryNode["disconnect"]();
+		this.wetNode["disconnect"]();
+	};
+	PhaserEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	PhaserEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[5] = value;
+			setAudioParam(this.wetNode["gain"], value / 2, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - (value / 2), ramp, time);
+			break;
+		case 1:		// filter frequency
+			this.params[0] = value;
+			setAudioParam(this.filterNode["frequency"], value, ramp, time);
+			break;
+		case 2:		// filter detune
+			this.params[1] = value;
+			setAudioParam(this.filterNode["detune"], value, ramp, time);
+			break;
+		case 3:		// filter Q
+			this.params[2] = value;
+			setAudioParam(this.filterNode["Q"], value, ramp, time);
+			break;
+		case 6:		// modulation
+			this.params[3] = value;
+			setAudioParam(this.oscGainNode["gain"], value, ramp, time);
+			break;
+		case 7:		// modulation frequency
+			this.params[4] = value;
+			setAudioParam(this.oscNode["frequency"], value, ramp, time);
+			break;
+		}
+	};
+	function GainEffect(g)
+	{
+		this.type = "gain";
+		this.params = [g];
+		this.node = createGain();
+		this.node["gain"]["value"] = g;
+	};
+	GainEffect.prototype.connectTo = function (node_)
+	{
+		this.node["disconnect"]();
+		this.node["connect"](node_);
+	};
+	GainEffect.prototype.remove = function ()
+	{
+		this.node["disconnect"]();
+	};
+	GainEffect.prototype.getInputNode = function ()
+	{
+		return this.node;
+	};
+	GainEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 4:		// gain
+			this.params[0] = dbToLinear(value);
+			setAudioParam(this.node["gain"], dbToLinear(value), ramp, time);
+			break;
+		}
+	};
+	function TremoloEffect(freq, mix)
+	{
+		this.type = "tremolo";
+		this.params = [freq, mix];
+		this.node = createGain();
+		this.node["gain"]["value"] = 1 - (mix / 2);
+		this.oscNode = context["createOscillator"]();
+		this.oscNode["frequency"]["value"] = freq;
+		this.oscGainNode = createGain();
+		this.oscGainNode["gain"]["value"] = mix / 2;
+		this.oscNode["connect"](this.oscGainNode);
+		this.oscGainNode["connect"](this.node["gain"]);
+		startSource(this.oscNode);
+	};
+	TremoloEffect.prototype.connectTo = function (node_)
+	{
+		this.node["disconnect"]();
+		this.node["connect"](node_);
+	};
+	TremoloEffect.prototype.remove = function ()
+	{
+		this.oscNode["disconnect"]();
+		this.oscGainNode["disconnect"]();
+		this.node["disconnect"]();
+	};
+	TremoloEffect.prototype.getInputNode = function ()
+	{
+		return this.node;
+	};
+	TremoloEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[1] = value;
+			setAudioParam(this.node["gain"]["value"], 1 - (value / 2), ramp, time);
+			setAudioParam(this.oscGainNode["gain"]["value"], value / 2, ramp, time);
+			break;
+		case 7:		// modulation frequency
+			this.params[0] = value;
+			setAudioParam(this.oscNode["frequency"], value, ramp, time);
+			break;
+		}
+	};
+	function RingModulatorEffect(freq, mix)
+	{
+		this.type = "ringmod";
+		this.params = [freq, mix];
+		this.inputNode = createGain();
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix;
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - mix;
+		this.ringNode = createGain();
+		this.ringNode["gain"]["value"] = 0;
+		this.oscNode = context["createOscillator"]();
+		this.oscNode["frequency"]["value"] = freq;
+		this.oscNode["connect"](this.ringNode["gain"]);
+		startSource(this.oscNode);
+		this.inputNode["connect"](this.ringNode);
+		this.inputNode["connect"](this.dryNode);
+		this.ringNode["connect"](this.wetNode);
+	};
+	RingModulatorEffect.prototype.connectTo = function (node_)
+	{
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node_);
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node_);
+	};
+	RingModulatorEffect.prototype.remove = function ()
+	{
+		this.oscNode["disconnect"]();
+		this.ringNode["disconnect"]();
+		this.inputNode["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.dryNode["disconnect"]();
+	};
+	RingModulatorEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	RingModulatorEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[1] = value;
+			setAudioParam(this.wetNode["gain"], value, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - value, ramp, time);
+			break;
+		case 7:		// modulation frequency
+			this.params[0] = value;
+			setAudioParam(this.oscNode["frequency"], value, ramp, time);
+			break;
+		}
+	};
+	function DistortionEffect(threshold, headroom, drive, makeupgain, mix)
+	{
+		this.type = "distortion";
+		this.params = [threshold, headroom, drive, makeupgain, mix];
+		this.inputNode = createGain();
+		this.preGain = createGain();
+		this.postGain = createGain();
+		this.setDrive(drive, dbToLinear_nocap(makeupgain));
+		this.wetNode = createGain();
+		this.wetNode["gain"]["value"] = mix;
+		this.dryNode = createGain();
+		this.dryNode["gain"]["value"] = 1 - mix;
+		this.waveShaper = context["createWaveShaper"]();
+		this.curve = new Float32Array(65536);
+		this.generateColortouchCurve(threshold, headroom);
+		this.waveShaper.curve = this.curve;
+		this.inputNode["connect"](this.preGain);
+		this.inputNode["connect"](this.dryNode);
+		this.preGain["connect"](this.waveShaper);
+		this.waveShaper["connect"](this.postGain);
+		this.postGain["connect"](this.wetNode);
+	};
+	DistortionEffect.prototype.setDrive = function (drive, makeupgain)
+	{
+		if (drive < 0.01)
+			drive = 0.01;
+		this.preGain["gain"]["value"] = drive;
+		this.postGain["gain"]["value"] = Math.pow(1 / drive, 0.6) * makeupgain;
+	};
+	function e4(x, k)
+	{
+		return 1.0 - Math.exp(-k * x);
+	}
+	DistortionEffect.prototype.shape = function (x, linearThreshold, linearHeadroom)
+	{
+		var maximum = 1.05 * linearHeadroom * linearThreshold;
+		var kk = (maximum - linearThreshold);
+		var sign = x < 0 ? -1 : +1;
+		var absx = x < 0 ? -x : x;
+		var shapedInput = absx < linearThreshold ? absx : linearThreshold + kk * e4(absx - linearThreshold, 1.0 / kk);
+		shapedInput *= sign;
+		return shapedInput;
+	};
+	DistortionEffect.prototype.generateColortouchCurve = function (threshold, headroom)
+	{
+		var linearThreshold = dbToLinear_nocap(threshold);
+		var linearHeadroom = dbToLinear_nocap(headroom);
+		var n = 65536;
+		var n2 = n / 2;
+		var x = 0;
+		for (var i = 0; i < n2; ++i) {
+			x = i / n2;
+			x = this.shape(x, linearThreshold, linearHeadroom);
+			this.curve[n2 + i] = x;
+			this.curve[n2 - i - 1] = -x;
+		}
+	};
+	DistortionEffect.prototype.connectTo = function (node)
+	{
+		this.wetNode["disconnect"]();
+		this.wetNode["connect"](node);
+		this.dryNode["disconnect"]();
+		this.dryNode["connect"](node);
+	};
+	DistortionEffect.prototype.remove = function ()
+	{
+		this.inputNode["disconnect"]();
+		this.preGain["disconnect"]();
+		this.waveShaper["disconnect"]();
+		this.postGain["disconnect"]();
+		this.wetNode["disconnect"]();
+		this.dryNode["disconnect"]();
+	};
+	DistortionEffect.prototype.getInputNode = function ()
+	{
+		return this.inputNode;
+	};
+	DistortionEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+		switch (param) {
+		case 0:		// mix
+			value = value / 100;
+			if (value < 0) value = 0;
+			if (value > 1) value = 1;
+			this.params[4] = value;
+			setAudioParam(this.wetNode["gain"], value, ramp, time);
+			setAudioParam(this.dryNode["gain"], 1 - value, ramp, time);
+			break;
+		}
+	};
+	function CompressorEffect(threshold, knee, ratio, attack, release)
+	{
+		this.type = "compressor";
+		this.params = [threshold, knee, ratio, attack, release];
+		this.node = context["createDynamicsCompressor"]();
+		this.node["threshold"]["value"] = threshold;
+		this.node["knee"]["value"] = knee;
+		this.node["ratio"]["value"] = ratio;
+		this.node["attack"]["value"] = attack;
+		this.node["release"]["value"] = release;
+	};
+	CompressorEffect.prototype.connectTo = function (node_)
+	{
+		this.node["disconnect"]();
+		this.node["connect"](node_);
+	};
+	CompressorEffect.prototype.remove = function ()
+	{
+		this.node["disconnect"]();
+	};
+	CompressorEffect.prototype.getInputNode = function ()
+	{
+		return this.node;
+	};
+	CompressorEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+	};
+	function AnalyserEffect(fftSize, smoothing)
+	{
+		this.type = "analyser";
+		this.params = [fftSize, smoothing];
+		this.node = context["createAnalyser"]();
+		this.node["fftSize"] = fftSize;
+		this.node["smoothingTimeConstant"] = smoothing;
+		this.freqBins = new Float32Array(this.node["frequencyBinCount"]);
+		this.signal = new Uint8Array(fftSize);
+		this.peak = 0;
+		this.rms = 0;
+	};
+	AnalyserEffect.prototype.tick = function ()
+	{
+		this.node["getFloatFrequencyData"](this.freqBins);
+		this.node["getByteTimeDomainData"](this.signal);
+		var fftSize = this.node["fftSize"];
+		var i = 0;
+		this.peak = 0;
+		var rmsSquaredSum = 0;
+		var s = 0;
+		for ( ; i < fftSize; i++)
+		{
+			s = (this.signal[i] - 128) / 128;
+			if (s < 0)
+				s = -s;
+			if (this.peak < s)
+				this.peak = s;
+			rmsSquaredSum += s * s;
+		}
+		this.peak = linearToDb(this.peak);
+		this.rms = linearToDb(Math.sqrt(rmsSquaredSum / fftSize));
+	};
+	AnalyserEffect.prototype.connectTo = function (node_)
+	{
+		this.node["disconnect"]();
+		this.node["connect"](node_);
+	};
+	AnalyserEffect.prototype.remove = function ()
+	{
+		this.node["disconnect"]();
+	};
+	AnalyserEffect.prototype.getInputNode = function ()
+	{
+		return this.node;
+	};
+	AnalyserEffect.prototype.setParam = function(param, value, ramp, time)
+	{
+	};
+	var OT_POS_SAMPLES = 4;
+	function ObjectTracker()
+	{
+		this.obj = null;
+		this.loadUid = 0;
+		this.speeds = [];
+		this.lastX = 0;
+		this.lastY = 0;
+		this.moveAngle = 0;
+	};
+	ObjectTracker.prototype.setObject = function (obj_)
+	{
+		this.obj = obj_;
+		if (this.obj)
+		{
+			this.lastX = this.obj.x;
+			this.lastY = this.obj.y;
+		}
+		this.speeds.length = 0;
+	};
+	ObjectTracker.prototype.hasObject = function ()
+	{
+		return !!this.obj;
+	};
+	ObjectTracker.prototype.tick = function (dt)
+	{
+		if (!this.obj)
+			return;
+		this.moveAngle = cr.angleTo(this.lastX, this.lastY, this.obj.x, this.obj.y);
+		var s = cr.distanceTo(this.lastX, this.lastY, this.obj.x, this.obj.y) / dt;
+		if (this.speeds.length < OT_POS_SAMPLES)
+			this.speeds.push(s);
+		else
+		{
+			this.speeds.shift();
+			this.speeds.push(s);
+		}
+		this.lastX = this.obj.x;
+		this.lastY = this.obj.y;
+	};
+	ObjectTracker.prototype.getSpeed = function ()
+	{
+		if (!this.speeds.length)
+			return 0;
+		var i, len, sum = 0;
+		for (i = 0, len = this.speeds.length; i < len; i++)
+		{
+			sum += this.speeds[i];
+		}
+		return sum / this.speeds.length;
+	};
+	ObjectTracker.prototype.getVelocityX = function ()
+	{
+		return Math.cos(this.moveAngle) * this.getSpeed();
+	};
+	ObjectTracker.prototype.getVelocityY = function ()
+	{
+		return Math.sin(this.moveAngle) * this.getSpeed();
+	};
+	var iOShadtouch = false;	// has had touch input on iOS to work around web audio API muting
+	function C2AudioBuffer(src_, is_music)
+	{
+		this.src = src_;
+		this.myapi = api;
+		this.is_music = is_music;
+		this.added_end_listener = false;
+		var self = this;
+		this.outNode = null;
+		this.mediaSourceNode = null;
+		this.panWhenReady = [];		// for web audio API positioned sounds
+		this.seekWhenReady = 0;
+		this.pauseWhenReady = false;
+		if (api === API_WEBAUDIO && is_music && !audRuntime.isiOS)
+		{
+			this.myapi = API_HTML5;
+			this.outNode = createGain();
+		}
+		this.bufferObject = null;
+		var request;
+		switch (this.myapi) {
+		case API_HTML5:
+			this.bufferObject = new Audio();
+			if (api === API_WEBAUDIO)
+			{
+				this.bufferObject.addEventListener("canplay", function ()
+				{
+					self.mediaSourceNode = context["createMediaElementSource"](self.bufferObject);
+					self.mediaSourceNode["connect"](self.outNode);
+				});
+			}
+			this.bufferObject.autoplay = false;	// this is only a source buffer, not an instance
+			this.bufferObject.preload = "auto";
+			this.bufferObject.src = src_;
+			break;
+		case API_WEBAUDIO:
+			request = new XMLHttpRequest();
+			request.open("GET", src_, true);
+			request.responseType = "arraybuffer";
+			request.onload = function () {
+				if (context["decodeAudioData"])
+				{
+					context["decodeAudioData"](request.response, function (buffer) {
+							self.bufferObject = buffer;
+							var p, i, len, a;
+							if (!cr.is_undefined(self.playTagWhenReady))
+							{
+								if (self.panWhenReady.length)
+								{
+									for (i = 0, len = self.panWhenReady.length; i < len; i++)
+									{
+										p = self.panWhenReady[i];
+										a = new C2AudioInstance(self, p.thistag);
+										a.setPannerEnabled(true);
+										if (typeof p.objUid !== "undefined")
+										{
+											p.obj = audRuntime.getObjectByUID(p.objUid);
+											if (!p.obj)
+												continue;
+										}
+										if (p.obj)
+										{
+											var px = cr.rotatePtAround(p.obj.x, p.obj.y, p.obj.layer.getAngle(), listenerX, listenerY, true);
+											var py = cr.rotatePtAround(p.obj.x, p.obj.y, p.obj.layer.getAngle(), listenerX, listenerY, false);
+											a.setPan(px, py, cr.to_degrees(p.obj.angle + p.obj.layer.getAngle()), p.ia, p.oa, p.og);
+											a.setObject(p.obj);
+										}
+										else
+										{
+											a.setPan(p.x, p.y, p.a, p.ia, p.oa, p.og);
+										}
+										a.play(self.loopWhenReady, self.volumeWhenReady, self.seekWhenReady);
+										if (self.pauseWhenReady)
+											a.pause();
+										audioInstances.push(a);
+									}
+									self.panWhenReady.length = 0;
+								}
+								else
+								{
+									a = new C2AudioInstance(self, self.playTagWhenReady);
+									a.play(self.loopWhenReady, self.volumeWhenReady, self.seekWhenReady);
+									if (self.pauseWhenReady)
+										a.pause();
+									audioInstances.push(a);
+								}
+							}
+							else if (!cr.is_undefined(self.convolveWhenReady))
+							{
+								var convolveNode = self.convolveWhenReady.convolveNode;
+								convolveNode["normalize"] = self.normalizeWhenReady;
+								convolveNode["buffer"] = buffer;
+							}
+					});
+				}
+				else
+				{
+					self.bufferObject = context["createBuffer"](request.response, false);
+					if (!cr.is_undefined(self.playTagWhenReady))
+					{
+						var a = new C2AudioInstance(self, self.playTagWhenReady);
+						a.play(self.loopWhenReady, self.volumeWhenReady, self.seekWhenReady);
+						if (self.pauseWhenReady)
+							a.pause();
+						audioInstances.push(a);
+					}
+					else if (!cr.is_undefined(self.convolveWhenReady))
+					{
+						var convolveNode = self.convolveWhenReady.convolveNode;
+						convolveNode["normalize"] = self.normalizeWhenReady;
+						convolveNode["buffer"] = self.bufferObject;
+					}
+				}
+			};
+			request.send();
+			break;
+		case API_PHONEGAP:
+			this.bufferObject = true;
+			break;
+		case API_APPMOBI:
+			this.bufferObject = true;
+			break;
+		}
+	};
+	C2AudioBuffer.prototype.isLoaded = function ()
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			return this.bufferObject["readyState"] === 4;	// HAVE_ENOUGH_DATA
+		case API_WEBAUDIO:
+			return !!this.bufferObject;			// null until AJAX request completes
+		case API_PHONEGAP:
+			return true;
+		case API_APPMOBI:
+			return true;
+		}
+		return false;
+	};
+	function C2AudioInstance(buffer_, tag_)
+	{
+		var self = this;
+		this.tag = tag_;
+		this.fresh = true;
+		this.stopped = true;
+		this.src = buffer_.src;
+		this.buffer = buffer_;
+		this.myapi = api;
+		this.is_music = buffer_.is_music;
+		this.playbackRate = 1;
+		this.pgended = true;			// for PhoneGap only: ended flag
+		this.resume_me = false;			// make sure resumes when leaving suspend
+		this.is_paused = false;
+		this.resume_position = 0;		// for web audio api to resume from correct playback position
+		this.looping = false;
+		this.is_muted = false;
+		this.is_silent = false;
+		this.volume = 1;
+		this.mutevol = 1;
+		this.startTime = audRuntime.kahanTime.sum;
+		this.gainNode = null;
+		this.pannerNode = null;
+		this.pannerEnabled = false;
+		this.objectTracker = null;
+		this.panX = 0;
+		this.panY = 0;
+		this.panAngle = 0;
+		this.panConeInner = 0;
+		this.panConeOuter = 0;
+		this.panConeOuterGain = 0;
+		this.instanceObject = null;
+		var add_end_listener = false;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (this.is_music)
+			{
+				this.instanceObject = buffer_.bufferObject;
+				add_end_listener = !buffer_.added_end_listener;
+				buffer_.added_end_listener = true;
+			}
+			else
+			{
+				this.instanceObject = new Audio();
+				this.instanceObject.autoplay = false;
+				this.instanceObject.src = buffer_.bufferObject.src;
+				add_end_listener = true;
+			}
+			if (add_end_listener)
+			{
+				this.instanceObject.addEventListener('ended', function () {
+						audTag = self.tag;
+						self.stopped = true;
+						audRuntime.trigger(cr.plugins_.Audio.prototype.cnds.OnEnded, audInst);
+				});
+			}
+			break;
+		case API_WEBAUDIO:
+			this.gainNode = createGain();
+			this.gainNode["connect"](getDestinationForTag(tag_));
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (buffer_.bufferObject)
+				{
+					this.instanceObject = context["createBufferSource"]();
+					this.instanceObject["buffer"] = buffer_.bufferObject;
+					this.instanceObject["connect"](this.gainNode);
+				}
+			}
+			else
+			{
+				this.instanceObject = this.buffer.bufferObject;		// reference the audio element
+				this.buffer.outNode["connect"](this.gainNode);
+			}
+			break;
+		case API_PHONEGAP:
+			this.instanceObject = new window["Media"](appPath + this.src, null, null, function (status) {
+					if (status === window["Media"]["MEDIA_STOPPED"])
+					{
+						self.pgended = true;
+						self.stopped = true;
+						audTag = self.tag;
+						audRuntime.trigger(cr.plugins_.Audio.prototype.cnds.OnEnded, audInst);
+					}
+			});
+			break;
+		case API_APPMOBI:
+			this.instanceObject = true;
+			break;
+		}
+	};
+	C2AudioInstance.prototype.hasEnded = function ()
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			return this.instanceObject.ended;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (!this.fresh && !this.stopped && this.instanceObject["loop"])
+					return false;
+				if (this.is_paused)
+					return false;
+				return (audRuntime.kahanTime.sum - this.startTime) > this.buffer.bufferObject["duration"];
+			}
+			else
+				return this.instanceObject.ended;
+		case API_PHONEGAP:
+			return this.pgended;
+		case API_APPMOBI:
+			true;	// recycling an AppMobi sound does not matter because it will just do another throwaway playSound
+		}
+		return true;
+	};
+	C2AudioInstance.prototype.canBeRecycled = function ()
+	{
+		if (this.fresh || this.stopped)
+			return true;		// not yet used or is not playing
+		return this.hasEnded();
+	};
+	C2AudioInstance.prototype.setPannerEnabled = function (enable_)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		if (!this.pannerEnabled && enable_)
+		{
+			if (!this.pannerNode)
+			{
+				this.pannerNode = context["createPanner"]();
+				if (typeof this.pannerNode["panningModel"] === "number")
+					this.pannerNode["panningModel"] = panningModel;
+				else
+					this.pannerNode["panningModel"] = ["equalpower", "HRTF", "soundfield"][panningModel];
+				if (typeof this.pannerNode["distanceModel"] === "number")
+					this.pannerNode["distanceModel"] = distanceModel;
+				else
+					this.pannerNode["distanceModel"] = ["linear", "inverse", "exponential"][distanceModel];
+				this.pannerNode["refDistance"] = refDistance;
+				this.pannerNode["maxDistance"] = maxDistance;
+				this.pannerNode["rolloffFactor"] = rolloffFactor;
+			}
+			this.gainNode["disconnect"]();
+			this.gainNode["connect"](this.pannerNode);
+			this.pannerNode["connect"](getDestinationForTag(this.tag));
+			this.pannerEnabled = true;
+		}
+		else if (this.pannerEnabled && !enable_)
+		{
+			this.pannerNode["disconnect"]();
+			this.gainNode["disconnect"]();
+			this.gainNode["connect"](getDestinationForTag(this.tag));
+			this.pannerEnabled = false;
+		}
+	};
+	C2AudioInstance.prototype.setPan = function (x, y, angle, innerangle, outerangle, outergain)
+	{
+		if (!this.pannerEnabled || api !== API_WEBAUDIO)
+			return;
+		this.pannerNode["setPosition"](x, y, 0);
+		this.pannerNode["setOrientation"](Math.cos(cr.to_radians(angle)), Math.sin(cr.to_radians(angle)), 0);
+		this.pannerNode["coneInnerAngle"] = innerangle;
+		this.pannerNode["coneOuterAngle"] = outerangle;
+		this.pannerNode["coneOuterGain"] = outergain;
+		this.panX = x;
+		this.panY = y;
+		this.panAngle = angle;
+		this.panConeInner = innerangle;
+		this.panConeOuter = outerangle;
+		this.panConeOuterGain = outergain;
+	};
+	C2AudioInstance.prototype.setObject = function (o)
+	{
+		if (!this.pannerEnabled || api !== API_WEBAUDIO)
+			return;
+		if (!this.objectTracker)
+			this.objectTracker = new ObjectTracker();
+		this.objectTracker.setObject(o);
+	};
+	C2AudioInstance.prototype.tick = function (dt)
+	{
+		if (!this.pannerEnabled || api !== API_WEBAUDIO || !this.objectTracker || !this.objectTracker.hasObject() || !this.isPlaying())
+		{
+			return;
+		}
+		this.objectTracker.tick(dt);
+		var inst = this.objectTracker.obj;
+		var px = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, true);
+		var py = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, false);
+		this.pannerNode["setPosition"](px, py, 0);
+		var a = 0;
+		if (typeof this.objectTracker.obj.angle !== "undefined")
+		{
+			a = inst.angle + inst.layer.getAngle();
+			this.pannerNode["setOrientation"](Math.cos(a), Math.sin(a), 0);
+		}
+		this.pannerNode["setVelocity"](this.objectTracker.getVelocityX(), this.objectTracker.getVelocityY(), 0);
+	};
+	C2AudioInstance.prototype.play = function (looping, vol, fromPosition)
+	{
+		var instobj = this.instanceObject;
+		this.looping = looping;
+		this.volume = vol;
+		var seekPos = fromPosition || 0;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (instobj.playbackRate !== 1.0)
+				instobj.playbackRate = 1.0;
+			if (instobj.volume !== vol * masterVolume)
+				instobj.volume = vol * masterVolume;
+			if (instobj.loop !== looping)
+				instobj.loop = looping;
+			if (instobj.muted)
+				instobj.muted = false;
+			if (instobj.currentTime !== seekPos)
+			{
+				try {
+					instobj.currentTime = seekPos;
+				}
+				catch (err)
+				{
+;
+				}
+			}
+			this.instanceObject.play();
+			break;
+		case API_WEBAUDIO:
+			this.muted = false;
+			this.mutevol = 1;
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (!this.fresh)
+				{
+					this.instanceObject = context["createBufferSource"]();
+					this.instanceObject["buffer"] = this.buffer.bufferObject;
+					this.instanceObject["connect"](this.gainNode);
+				}
+				this.instanceObject.loop = looping;
+				this.gainNode["gain"]["value"] = vol * masterVolume;
+				if (seekPos === 0)
+					startSource(this.instanceObject);
+				else
+					startSourceAt(this.instanceObject, seekPos, this.getDuration());
+			}
+			else
+			{
+				if (instobj.playbackRate !== 1.0)
+					instobj.playbackRate = 1.0;
+				if (instobj.loop !== looping)
+					instobj.loop = looping;
+				this.gainNode["gain"]["value"] = vol * masterVolume;
+				if (instobj.currentTime !== seekPos)
+				{
+					try {
+						instobj.currentTime = seekPos;
+					}
+					catch (err)
+					{
+;
+					}
+				}
+				instobj.play();
+			}
+			break;
+		case API_PHONEGAP:
+			if ((!this.fresh && this.stopped) || seekPos !== 0)
+				instobj["seekTo"](seekPos);
+			instobj["play"]();
+			this.pgended = false;
+			break;
+		case API_APPMOBI:
+			if (audRuntime.isDirectCanvas)
+				AppMobi["context"]["playSound"](this.src);
+			else
+				AppMobi["player"]["playSound"](this.src);
+			break;
+		}
+		this.playbackRate = 1;
+		this.startTime = audRuntime.kahanTime.sum - seekPos;
+		this.fresh = false;
+		this.stopped = false;
+		this.is_paused = false;
+	};
+	C2AudioInstance.prototype.stop = function ()
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			if (!this.instanceObject.paused)
+				this.instanceObject.pause();
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+				stopSource(this.instanceObject);
+			else
+			{
+				if (!this.instanceObject.paused)
+					this.instanceObject.pause();
+			}
+			break;
+		case API_PHONEGAP:
+			this.instanceObject["stop"]();
+			break;
+		case API_APPMOBI:
+			break;
+		}
+		this.stopped = true;
+		this.is_paused = false;
+	};
+	C2AudioInstance.prototype.pause = function ()
+	{
+		if (this.fresh || this.stopped || this.hasEnded() || this.is_paused)
+			return;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (!this.instanceObject.paused)
+				this.instanceObject.pause();
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				this.resume_position = this.getPlaybackTime();
+				if (this.looping)
+					this.resume_position = this.resume_position % this.getDuration();
+				stopSource(this.instanceObject);
+			}
+			else
+			{
+				if (!this.instanceObject.paused)
+					this.instanceObject.pause();
+			}
+			break;
+		case API_PHONEGAP:
+			this.instanceObject["pause"]();
+			break;
+		case API_APPMOBI:
+			break;
+		}
+		this.is_paused = true;
+	};
+	C2AudioInstance.prototype.resume = function ()
+	{
+		if (this.fresh || this.stopped || this.hasEnded() || !this.is_paused)
+			return;
+		switch (this.myapi) {
+		case API_HTML5:
+			this.instanceObject.play();
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				this.instanceObject = context["createBufferSource"]();
+				this.instanceObject["buffer"] = this.buffer.bufferObject;
+				this.instanceObject["connect"](this.gainNode);
+				this.instanceObject.loop = this.looping;
+				this.gainNode["gain"]["value"] = masterVolume * this.volume * this.mutevol;
+				this.startTime = audRuntime.kahanTime.sum - this.resume_position;
+				startSourceAt(this.instanceObject, this.resume_position, this.getDuration());
+			}
+			else
+			{
+				this.instanceObject.play();
+			}
+			break;
+		case API_PHONEGAP:
+			this.instanceObject["play"]();
+			break;
+		case API_APPMOBI:
+			break;
+		}
+		this.is_paused = false;
+	};
+	C2AudioInstance.prototype.seek = function (pos)
+	{
+		if (this.fresh || this.stopped || this.hasEnded())
+			return;
+		switch (this.myapi) {
+		case API_HTML5:
+			try {
+				this.instanceObject.currentTime = pos;
+			}
+			catch (e) {}
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (this.is_paused)
+					this.resume_position = pos;
+				else
+				{
+					this.pause();
+					this.resume_position = pos;
+					this.resume();
+				}
+			}
+			else
+			{
+				try {
+					this.instanceObject.currentTime = pos;
+				}
+				catch (e) {}
+			}
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	C2AudioInstance.prototype.reconnect = function (toNode)
+	{
+		if (this.myapi !== API_WEBAUDIO)
+			return;
+		if (this.pannerEnabled)
+		{
+			this.pannerNode["disconnect"]();
+			this.pannerNode["connect"](toNode);
+		}
+		else
+		{
+			this.gainNode["disconnect"]();
+			this.gainNode["connect"](toNode);
+		}
+	};
+	C2AudioInstance.prototype.getDuration = function ()
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			if (typeof this.instanceObject.duration !== "undefined")
+				return this.instanceObject.duration;
+			else
+				return 0;
+		case API_WEBAUDIO:
+			return this.buffer.bufferObject["duration"];
+		case API_PHONEGAP:
+			return this.instanceObject["getDuration"]();
+		case API_APPMOBI:
+			return 0;
+		}
+		return 0;
+	};
+	C2AudioInstance.prototype.getPlaybackTime = function ()
+	{
+		var duration = this.getDuration();
+		var ret = 0;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (typeof this.instanceObject.currentTime !== "undefined")
+				ret = this.instanceObject.currentTime;
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (this.is_paused)
+					return this.resume_position;
+				else
+					ret = audRuntime.kahanTime.sum - this.startTime;
+			}
+			else if (typeof this.instanceObject.currentTime !== "undefined")
+				ret = this.instanceObject.currentTime;
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+		if (!this.looping && ret > duration)
+			ret = duration;
+		return ret;
+	};
+	C2AudioInstance.prototype.isPlaying = function ()
+	{
+		return !this.is_paused && !this.fresh && !this.stopped && !this.hasEnded();
+	};
+	C2AudioInstance.prototype.setVolume = function (v)
+	{
+		this.volume = v;
+		this.updateVolume();
+	};
+	C2AudioInstance.prototype.updateVolume = function ()
+	{
+		var volToSet = this.volume * masterVolume;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (this.instanceObject.volume && this.instanceObject.volume !== volToSet)
+				this.instanceObject.volume = volToSet;
+			break;
+		case API_WEBAUDIO:
+			this.gainNode["gain"]["value"] = volToSet * this.mutevol;
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	C2AudioInstance.prototype.getVolume = function ()
+	{
+		return this.volume;
+	};
+	C2AudioInstance.prototype.doSetMuted = function (m)
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			if (this.instanceObject.muted !== !!m)
+				this.instanceObject.muted = !!m;
+			break;
+		case API_WEBAUDIO:
+			this.mutevol = (m ? 0 : 1);
+			this.gainNode["gain"]["value"] = masterVolume * this.volume * this.mutevol;
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	C2AudioInstance.prototype.setMuted = function (m)
+	{
+		this.is_muted = !!m;
+		this.doSetMuted(this.is_muted || this.is_silent);
+	};
+	C2AudioInstance.prototype.setSilent = function (m)
+	{
+		this.is_silent = !!m;
+		this.doSetMuted(this.is_muted || this.is_silent);
+	};
+	C2AudioInstance.prototype.setLooping = function (l)
+	{
+		this.looping = l;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (this.instanceObject.loop !== !!l)
+				this.instanceObject.loop = !!l;
+			break;
+		case API_WEBAUDIO:
+			if (this.instanceObject.loop !== !!l)
+				this.instanceObject.loop = !!l;
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	C2AudioInstance.prototype.setPlaybackRate = function (r)
+	{
+		this.playbackRate = r;
+		this.updatePlaybackRate();
+	};
+	C2AudioInstance.prototype.updatePlaybackRate = function ()
+	{
+		var r = this.playbackRate;
+		if ((timescale_mode === 1 && !this.is_music) || timescale_mode === 2)
+			r *= audRuntime.timescale;
+		switch (this.myapi) {
+		case API_HTML5:
+			if (this.instanceObject.playbackRate !== r)
+				this.instanceObject.playbackRate = r;
+			break;
+		case API_WEBAUDIO:
+			if (this.buffer.myapi === API_WEBAUDIO)
+			{
+				if (this.instanceObject["playbackRate"]["value"] !== r)
+					this.instanceObject["playbackRate"]["value"] = r;
+			}
+			else
+			{
+				if (this.instanceObject.playbackRate !== r)
+					this.instanceObject.playbackRate = r;
+			}
+			break;
+		case API_PHONEGAP:
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	C2AudioInstance.prototype.setSuspended = function (s)
+	{
+		switch (this.myapi) {
+		case API_HTML5:
+			if (s)
+			{
+				if (this.isPlaying())
+				{
+					this.instanceObject["pause"]();
+					this.resume_me = true;
+				}
+				else
+					this.resume_me = false;
+			}
+			else
+			{
+				if (this.resume_me)
+					this.instanceObject["play"]();
+			}
+			break;
+		case API_WEBAUDIO:
+			if (s)
+			{
+				if (this.isPlaying())
+				{
+					if (this.buffer.myapi === API_WEBAUDIO)
+					{
+						this.resume_position = this.getPlaybackTime();
+						if (this.looping)
+							this.resume_position = this.resume_position % this.getDuration();
+						stopSource(this.instanceObject);
+					}
+					else
+						this.instanceObject["pause"]();
+					this.resume_me = true;
+				}
+				else
+					this.resume_me = false;
+			}
+			else
+			{
+				if (this.resume_me)
+				{
+					if (this.buffer.myapi === API_WEBAUDIO)
+					{
+						this.instanceObject = context["createBufferSource"]();
+						this.instanceObject["buffer"] = this.buffer.bufferObject;
+						this.instanceObject["connect"](this.gainNode);
+						this.instanceObject.loop = this.looping;
+						this.gainNode["gain"]["value"] = masterVolume * this.volume * this.mutevol;
+						this.startTime = audRuntime.kahanTime.sum - this.resume_position;
+						startSourceAt(this.instanceObject, this.resume_position, this.getDuration());
+					}
+					else
+					{
+						this.instanceObject["play"]();
+					}
+				}
+			}
+			break;
+		case API_PHONEGAP:
+			if (s)
+			{
+				if (this.isPlaying())
+				{
+					this.instanceObject["pause"]();
+					this.resume_me = true;
+				}
+				else
+					this.resume_me = false;
+			}
+			else
+			{
+				if (this.resume_me)
+					this.instanceObject["play"]();
+			}
+			break;
+		case API_APPMOBI:
+			break;
+		}
+	};
+	pluginProto.Instance = function(type)
+	{
+		this.type = type;
+		this.runtime = type.runtime;
+		audRuntime = this.runtime;
+		audInst = this;
+		this.listenerTracker = null;
+		this.listenerZ = -600;
+		context = null;
+		if (typeof AudioContext !== "undefined")
+		{
+			api = API_WEBAUDIO;
+			context = new AudioContext();
+		}
+		else if (typeof webkitAudioContext !== "undefined")
+		{
+			api = API_WEBAUDIO;
+			context = new webkitAudioContext();
+		}
+		if (this.runtime.isiOS && api === API_WEBAUDIO)
+		{
+			document.addEventListener("touchstart", function () {
+				if (iOShadtouch)
+					return;
+				var buffer = context["createBuffer"](1, 1, 22050);
+				var source = context["createBufferSource"]();
+				source["buffer"] = buffer;
+				source["connect"](context["destination"]);
+				startSource(source);
+				iOShadtouch = true;
+			}, true);
+		}
+		if (api !== API_WEBAUDIO)
+		{
+			if (this.runtime.isPhoneGap)
+				api = API_PHONEGAP;
+			else if (this.runtime.isAppMobi)
+				api = API_APPMOBI;
+		}
+		if (api === API_PHONEGAP)
+		{
+			appPath = location.href;
+			var i = appPath.lastIndexOf("/");
+			if (i > -1)
+				appPath = appPath.substr(0, i + 1);
+			appPath = appPath.replace("file://", "");
+		}
+		if (this.runtime.isSafari && this.runtime.isWindows && typeof Audio === "undefined")
+		{
+			alert("It looks like you're using Safari for Windows without Quicktime.  Audio cannot be played until Quicktime is installed.");
+			this.runtime.DestroyInstance(this);
+		}
+		else
+		{
+			if (this.runtime.isDirectCanvas)
+				useOgg = this.runtime.isAndroid;		// AAC on iOS, OGG on Android
+			else
+			{
+				try {
+					useOgg = !!(new Audio().canPlayType('audio/ogg; codecs="vorbis"'));
+				}
+				catch (e)
+				{
+					useOgg = false;
+				}
+			}
+			switch (api) {
+			case API_HTML5:
+;
+				break;
+			case API_WEBAUDIO:
+;
+				break;
+			case API_PHONEGAP:
+;
+				break;
+			case API_APPMOBI:
+;
+				break;
+			default:
+;
+			}
+			this.runtime.tickMe(this);
+		}
+	};
+	var instanceProto = pluginProto.Instance.prototype;
+	instanceProto.onCreate = function ()
+	{
+		timescale_mode = this.properties[0];	// 0 = off, 1 = sounds only, 2 = all
+		panningModel = this.properties[1];		// 0 = equalpower, 1 = hrtf, 3 = soundfield
+		distanceModel = this.properties[2];		// 0 = linear, 1 = inverse, 2 = exponential
+		this.listenerZ = -this.properties[3];
+		refDistance = this.properties[4];
+		maxDistance = this.properties[5];
+		rolloffFactor = this.properties[6];
+		this.listenerTracker = new ObjectTracker();
+		if (api === API_WEBAUDIO)
+		{
+			context["listener"]["speedOfSound"] = this.properties[7];
+			context["listener"]["dopplerFactor"] = this.properties[8];
+			context["listener"]["setPosition"](this.runtime.width / 2, this.runtime.height / 2, this.listenerZ);
+			context["listener"]["setOrientation"](0, 0, 1, 0, -1, 0);
+			window["c2OnAudioMicStream"] = function (localMediaStream, tag)
+			{
+				if (micSource)
+					micSource["disconnect"]();
+				micTag = tag.toLowerCase();
+				micSource = context["createMediaStreamSource"](localMediaStream);
+				micSource["connect"](getDestinationForTag(micTag));
+			};
+		}
+		this.runtime.addSuspendCallback(function(s)
+		{
+			audInst.onSuspend(s);
+		});
+		var self = this;
+		this.runtime.addDestroyCallback(function (inst)
+		{
+			self.onInstanceDestroyed(inst);
+		});
+	};
+	instanceProto.onInstanceDestroyed = function (inst)
+	{
+		var i, len, a;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			a = audioInstances[i];
+			if (a.objectTracker)
+			{
+				if (a.objectTracker.obj === inst)
+				{
+					a.objectTracker.obj = null;
+					if (a.pannerEnabled && a.isPlaying() && a.looping)
+						a.stop();
+				}
+			}
+		}
+		if (this.listenerTracker.obj === inst)
+			this.listenerTracker.obj = null;
+	};
+	instanceProto.saveToJSON = function ()
+	{
+		var o = {
+			"silent": silent,
+			"masterVolume": masterVolume,
+			"listenerZ": this.listenerZ,
+			"listenerUid": this.listenerTracker.hasObject() ? this.listenerTracker.obj.uid : -1,
+			"playing": [],
+			"effects": {}
+		};
+		var playingarr = o["playing"];
+		var i, len, a, d, p, panobj, playbackTime;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			a = audioInstances[i];
+			if (!a.isPlaying())
+				continue;		// no need to save stopped sounds
+			playbackTime = a.getPlaybackTime();
+			if (a.looping)
+				playbackTime = playbackTime % a.getDuration();
+			d = {
+				"tag": a.tag,
+				"buffersrc": a.buffer.src,
+				"is_music": a.is_music,
+				"playbackTime": playbackTime,
+				"volume": a.volume,
+				"looping": a.looping,
+				"muted": a.is_muted,
+				"playbackRate": a.playbackRate,
+				"paused": a.is_paused,
+				"resume_position": a.resume_position
+			};
+			if (a.pannerEnabled)
+			{
+				d["pan"] = {};
+				panobj = d["pan"];
+				if (a.objectTracker && a.objectTracker.hasObject())
+				{
+					panobj["objUid"] = a.objectTracker.obj.uid;
+				}
+				else
+				{
+					panobj["x"] = a.panX;
+					panobj["y"] = a.panY;
+					panobj["a"] = a.panAngle;
+				}
+				panobj["ia"] = a.panConeInner;
+				panobj["oa"] = a.panConeOuter;
+				panobj["og"] = a.panConeOuterGain;
+			}
+			playingarr.push(d);
+		}
+		var fxobj = o["effects"];
+		var fxarr;
+		for (p in effects)
+		{
+			if (effects.hasOwnProperty(p))
+			{
+				fxarr = [];
+				for (i = 0, len = effects[p].length; i < len; i++)
+				{
+					fxarr.push({ "type": effects[p][i].type, "params": effects[p][i].params });
+				}
+				fxobj[p] = fxarr;
+			}
+		}
+		return o;
+	};
+	var objectTrackerUidsToLoad = [];
+	instanceProto.loadFromJSON = function (o)
+	{
+		var setSilent = o["silent"];
+		masterVolume = o["masterVolume"];
+		this.listenerZ = o["listenerZ"];
+		this.listenerTracker.setObject(null);
+		var listenerUid = o["listenerUid"];
+		if (listenerUid !== -1)
+		{
+			this.listenerTracker.loadUid = listenerUid;
+			objectTrackerUidsToLoad.push(this.listenerTracker);
+		}
+		var playingarr = o["playing"];
+		var i, len, d, src, is_music, tag, playbackTime, looping, vol, b, a, p, pan, panObjUid;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			audioInstances[i].stop();
+		}
+		var fxarr, fxtype, fxparams, fx;
+		for (p in effects)
+		{
+			if (effects.hasOwnProperty(p))
+			{
+				for (i = 0, len = effects[p].length; i < len; i++)
+					effects[p][i].remove();
+			}
+		}
+		cr.wipe(effects);
+		for (p in o["effects"])
+		{
+			if (o["effects"].hasOwnProperty(p))
+			{
+				fxarr = o["effects"][p];
+				for (i = 0, len = fxarr.length; i < len; i++)
+				{
+					fxtype = fxarr[i]["type"];
+					fxparams = fxarr[i]["params"];
+					switch (fxtype) {
+					case "filter":
+						addEffectForTag(p, new FilterEffect(fxparams[0], fxparams[1], fxparams[2], fxparams[3], fxparams[4], fxparams[5]));
+						break;
+					case "delay":
+						addEffectForTag(p, new DelayEffect(fxparams[0], fxparams[1], fxparams[2]));
+						break;
+					case "convolve":
+						src = fxparams[2];
+						b = this.getAudioBuffer(src, false);
+						if (b.bufferObject)
+						{
+							fx = new ConvolveEffect(b.bufferObject, fxparams[0], fxparams[1], src);
+						}
+						else
+						{
+							fx = new ConvolveEffect(null, fxparams[0], fxparams[1], src);
+							b.normalizeWhenReady = fxparams[0];
+							b.convolveWhenReady = fx;
+						}
+						addEffectForTag(p, fx);
+						break;
+					case "flanger":
+						addEffectForTag(p, new FlangerEffect(fxparams[0], fxparams[1], fxparams[2], fxparams[3], fxparams[4]));
+						break;
+					case "phaser":
+						addEffectForTag(p, new PhaserEffect(fxparams[0], fxparams[1], fxparams[2], fxparams[3], fxparams[4], fxparams[5]));
+						break;
+					case "gain":
+						addEffectForTag(p, new GainEffect(fxparams[0]));
+						break;
+					case "tremolo":
+						addEffectForTag(p, new TremoloEffect(fxparams[0], fxparams[1]));
+						break;
+					case "ringmod":
+						addEffectForTag(p, new RingModulatorEffect(fxparams[0], fxparams[1]));
+						break;
+					case "distortion":
+						addEffectForTag(p, new DistortionEffect(fxparams[0], fxparams[1], fxparams[2], fxparams[3], fxparams[4]));
+						break;
+					case "compressor":
+						addEffectForTag(p, new CompressorEffect(fxparams[0], fxparams[1], fxparams[2], fxparams[3], fxparams[4]));
+						break;
+					case "analyser":
+						addEffectForTag(p, new AnalyserEffect(fxparams[0], fxparams[1]));
+						break;
+					}
+				}
+			}
+		}
+		for (i = 0, len = playingarr.length; i < len; i++)
+		{
+			d = playingarr[i];
+			src = d["buffersrc"];
+			is_music = d["is_music"];
+			tag = d["tag"];
+			playbackTime = d["playbackTime"];
+			looping = d["looping"];
+			vol = d["volume"];
+			pan = d["pan"];
+			panObjUid = (pan && pan.hasOwnProperty("objUid")) ? pan["objUid"] : -1;
+			a = this.getAudioInstance(src, tag, is_music, looping, vol);
+			if (!a)
+			{
+				b = this.getAudioBuffer(src, is_music);
+				b.seekWhenReady = playbackTime;
+				b.pauseWhenReady = d["paused"];
+				if (pan)
+				{
+					if (panObjUid !== -1)
+					{
+						b.panWhenReady.push({ objUid: panObjUid, ia: pan["ia"], oa: pan["oa"], og: pan["og"], thistag: tag });
+					}
+					else
+					{
+						b.panWhenReady.push({ x: pan["x"], y: pan["y"], a: pan["a"], ia: pan["ia"], oa: pan["oa"], og: pan["og"], thistag: tag });
+					}
+				}
+				continue;
+			}
+			a.resume_position = d["resume_position"];
+			a.setPannerEnabled(!!pan);
+			a.play(looping, vol, playbackTime);
+			a.updatePlaybackRate();
+			a.updateVolume();
+			a.doSetMuted(a.is_muted || a.is_silent);
+			if (d["paused"])
+				a.pause();
+			if (d["muted"])
+				a.mute();
+			if (pan)
+			{
+				if (panObjUid !== -1)
+				{
+					a.objectTracker = a.objectTracker || new ObjectTracker();
+					a.objectTracker.loadUid = panObjUid;
+					objectTrackerUidsToLoad.push(a.objectTracker);
+				}
+				else
+				{
+					a.setPan(pan["x"], pan["y"], pan["a"], pan["ia"], pan["oa"], pan["og"]);
+				}
+			}
+		}
+		if (setSilent && !silent)			// setting silent
+		{
+			for (i = 0, len = audioInstances.length; i < len; i++)
+				audioInstances[i].setSilent(true);
+			silent = true;
+		}
+		else if (!setSilent && silent)		// setting not silent
+		{
+			for (i = 0, len = audioInstances.length; i < len; i++)
+				audioInstances[i].setSilent(false);
+			silent = false;
+		}
+	};
+	instanceProto.afterLoad = function ()
+	{
+		var i, len, ot, inst;
+		for (i = 0, len = objectTrackerUidsToLoad.length; i < len; i++)
+		{
+			ot = objectTrackerUidsToLoad[i];
+			inst = this.runtime.getObjectByUID(ot.loadUid);
+			ot.setObject(inst);
+			ot.loadUid = -1;
+			if (inst)
+			{
+				listenerX = inst.x;
+				listenerY = inst.y;
+			}
+		}
+		objectTrackerUidsToLoad.length = 0;
+	};
+	instanceProto.onSuspend = function (s)
+	{
+		var i, len;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+			audioInstances[i].setSuspended(s);
+	};
+	instanceProto.tick = function ()
+	{
+		var dt = this.runtime.dt;
+		var i, len, a;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			a = audioInstances[i];
+			a.tick(dt);
+			if (a.myapi !== API_HTML5 && a.myapi !== API_APPMOBI)
+			{
+				if (!a.fresh && !a.stopped && a.hasEnded())
+				{
+					a.stopped = true;
+					audTag = a.tag;
+					audRuntime.trigger(cr.plugins_.Audio.prototype.cnds.OnEnded, audInst);
+				}
+			}
+			if (timescale_mode !== 0)
+				a.updatePlaybackRate();
+		}
+		var p, arr, f;
+		for (p in effects)
+		{
+			if (effects.hasOwnProperty(p))
+			{
+				arr = effects[p];
+				for (i = 0, len = arr.length; i < len; i++)
+				{
+					f = arr[i];
+					if (f.tick)
+						f.tick();
+				}
+			}
+		}
+		if (api === API_WEBAUDIO && this.listenerTracker.hasObject())
+		{
+			this.listenerTracker.tick(dt);
+			listenerX = this.listenerTracker.obj.x;
+			listenerY = this.listenerTracker.obj.y;
+			context["listener"]["setPosition"](this.listenerTracker.obj.x, this.listenerTracker.obj.y, this.listenerZ);
+			context["listener"]["setVelocity"](this.listenerTracker.getVelocityX(), this.listenerTracker.getVelocityY(), 0);
+		}
+	};
+	instanceProto.getAudioBuffer = function (src_, is_music)
+	{
+		var i, len, a;
+		for (i = 0, len = audioBuffers.length; i < len; i++)
+		{
+			a = audioBuffers[i];
+			if (a.src === src_)
+				return a;
+		}
+		a = new C2AudioBuffer(src_, is_music);
+		audioBuffers.push(a);
+		return a;
+	};
+	instanceProto.getAudioInstance = function (src_, tag, is_music, looping, vol)
+	{
+		var i, len, a;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			a = audioInstances[i];
+			if (a.src === src_ && (a.canBeRecycled() || is_music))
+			{
+				a.tag = tag;
+				return a;
+			}
+		}
+		var b = this.getAudioBuffer(src_, is_music);
+		if (!b.bufferObject)
+		{
+			if (tag !== "<preload>")
+			{
+				b.playTagWhenReady = tag;
+				b.loopWhenReady = looping;
+				b.volumeWhenReady = vol;
+			}
+			return null;
+		}
+		a = new C2AudioInstance(b, tag);
+		audioInstances.push(a);
+		return a;
+	};
+	var taggedAudio = [];
+	function getAudioByTag(tag)
+	{
+		taggedAudio.length = 0;
+		if (!tag.length)
+		{
+			if (!lastAudio || lastAudio.hasEnded())
+				return;
+			else
+			{
+				taggedAudio.length = 1;
+				taggedAudio[0] = lastAudio;
+				return;
+			}
+		}
+		var i, len, a;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			a = audioInstances[i];
+			if (tag.toLowerCase() === a.tag.toLowerCase())
+				taggedAudio.push(a);
+		}
+	};
+	function reconnectEffects(tag)
+	{
+		var i, len, arr, n, toNode = context["destination"];
+		if (effects.hasOwnProperty(tag))
+		{
+			arr = effects[tag];
+			if (arr.length)
+			{
+				toNode = arr[0].getInputNode();
+				for (i = 0, len = arr.length; i < len; i++)
+				{
+					n = arr[i];
+					if (i + 1 === len)
+						n.connectTo(context["destination"]);
+					else
+						n.connectTo(arr[i + 1].getInputNode());
+				}
+			}
+		}
+		getAudioByTag(tag);
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].reconnect(toNode);
+		if (micSource && micTag === tag)
+		{
+			micSource["disconnect"]();
+			micSource["connect"](toNode);
+		}
+	};
+	function addEffectForTag(tag, fx)
+	{
+		if (!effects.hasOwnProperty(tag))
+			effects[tag] = [fx];
+		else
+			effects[tag].push(fx);
+		reconnectEffects(tag);
+	};
+	function Cnds() {};
+	Cnds.prototype.OnEnded = function (t)
+	{
+		return audTag.toLowerCase() === t.toLowerCase();
+	};
+	Cnds.prototype.PreloadsComplete = function ()
+	{
+		var i, len;
+		for (i = 0, len = audioBuffers.length; i < len; i++)
+		{
+			if (!audioBuffers[i].isLoaded())
+				return false;
+		}
+		return true;
+	};
+	Cnds.prototype.AdvancedAudioSupported = function ()
+	{
+		return api === API_WEBAUDIO;
+	};
+	Cnds.prototype.IsSilent = function ()
+	{
+		return silent;
+	};
+	Cnds.prototype.IsAnyPlaying = function ()
+	{
+		var i, len;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+		{
+			if (audioInstances[i].isPlaying())
+				return true;
+		}
+		return false;
+	};
+	Cnds.prototype.IsTagPlaying = function (tag)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+		{
+			if (taggedAudio[i].isPlaying())
+				return true;
+		}
+		return false;
+	};
+	pluginProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.Play = function (file, looping, vol, tag)
+	{
+		if (silent)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = file[1];
+		var src = this.runtime.files_subfolder + file[0] + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+			return;
+		lastAudio.setPannerEnabled(false);
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.PlayAtPosition = function (file, looping, vol, x_, y_, angle_, innerangle_, outerangle_, outergain_, tag)
+	{
+		if (silent)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = file[1];
+		var src = this.runtime.files_subfolder + file[0] + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+		{
+			var b = this.getAudioBuffer(src, is_music);
+			b.panWhenReady.push({ x: x_, y: y_, a: angle_, ia: innerangle_, oa: outerangle_, og: dbToLinear(outergain_), thistag: tag });
+			return;
+		}
+		lastAudio.setPannerEnabled(true);
+		lastAudio.setPan(x_, y_, angle_, innerangle_, outerangle_, dbToLinear(outergain_));
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.PlayAtObject = function (file, looping, vol, obj, innerangle, outerangle, outergain, tag)
+	{
+		if (silent || !obj)
+			return;
+		var inst = obj.getFirstPicked();
+		if (!inst)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = file[1];
+		var src = this.runtime.files_subfolder + file[0] + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+		{
+			var b = this.getAudioBuffer(src, is_music);
+			b.panWhenReady.push({ obj: inst, ia: innerangle, oa: outerangle, og: dbToLinear(outergain), thistag: tag });
+			return;
+		}
+		lastAudio.setPannerEnabled(true);
+		var px = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, true);
+		var py = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, false);
+		lastAudio.setPan(px, py, cr.to_degrees(inst.angle + inst.layer.getAngle()), innerangle, outerangle, dbToLinear(outergain));
+		lastAudio.setObject(inst);
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.PlayByName = function (folder, filename, looping, vol, tag)
+	{
+		if (silent)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = (folder === 1);
+		var src = this.runtime.files_subfolder + filename.toLowerCase() + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+			return;
+		lastAudio.setPannerEnabled(false);
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.PlayAtPositionByName = function (folder, filename, looping, vol, x_, y_, angle_, innerangle_, outerangle_, outergain_, tag)
+	{
+		if (silent)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = (folder === 1);
+		var src = this.runtime.files_subfolder + filename.toLowerCase() + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+		{
+			var b = this.getAudioBuffer(src, is_music);
+			b.panWhenReady.push({ x: x_, y: y_, a: angle_, ia: innerangle_, oa: outerangle_, og: dbToLinear(outergain_), thistag: tag });
+			return;
+		}
+		lastAudio.setPannerEnabled(true);
+		lastAudio.setPan(x_, y_, angle_, innerangle_, outerangle_, dbToLinear(outergain_));
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.PlayAtObjectByName = function (folder, filename, looping, vol, obj, innerangle, outerangle, outergain, tag)
+	{
+		if (silent || !obj)
+			return;
+		var inst = obj.getFirstPicked();
+		if (!inst)
+			return;
+		var v = dbToLinear(vol);
+		var is_music = (folder === 1);
+		var src = this.runtime.files_subfolder + filename.toLowerCase() + (useOgg ? ".ogg" : ".m4a");
+		lastAudio = this.getAudioInstance(src, tag, is_music, looping!==0, v);
+		if (!lastAudio)
+		{
+			var b = this.getAudioBuffer(src, is_music);
+			b.panWhenReady.push({ obj: inst, ia: innerangle, oa: outerangle, og: dbToLinear(outergain), thistag: tag });
+			return;
+		}
+		lastAudio.setPannerEnabled(true);
+		var px = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, true);
+		var py = cr.rotatePtAround(inst.x, inst.y, inst.layer.getAngle(), listenerX, listenerY, false);
+		lastAudio.setPan(px, py, cr.to_degrees(inst.angle + inst.layer.getAngle()), innerangle, outerangle, dbToLinear(outergain));
+		lastAudio.setObject(inst);
+		lastAudio.play(looping!==0, v);
+	};
+	Acts.prototype.SetLooping = function (tag, looping)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].setLooping(looping === 0);
+	};
+	Acts.prototype.SetMuted = function (tag, muted)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].setMuted(muted === 0);
+	};
+	Acts.prototype.SetVolume = function (tag, vol)
+	{
+		getAudioByTag(tag);
+		var v = dbToLinear(vol);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].setVolume(v);
+	};
+	Acts.prototype.Preload = function (file)
+	{
+		if (silent)
+			return;
+		var is_music = file[1];
+		var src = this.runtime.files_subfolder + file[0] + (useOgg ? ".ogg" : ".m4a");
+		if (api === API_APPMOBI)
+		{
+			if (this.runtime.isDirectCanvas)
+				AppMobi["context"]["loadSound"](src);
+			else
+				AppMobi["player"]["loadSound"](src);
+			return;
+		}
+		else if (api === API_PHONEGAP)
+		{
+			return;
+		}
+		this.getAudioInstance(src, "<preload>", is_music, false);
+	};
+	Acts.prototype.PreloadByName = function (folder, filename)
+	{
+		if (silent)
+			return;
+		var is_music = (folder === 1);
+		var src = this.runtime.files_subfolder + filename.toLowerCase() + (useOgg ? ".ogg" : ".m4a");
+		if (api === API_APPMOBI)
+		{
+			if (this.runtime.isDirectCanvas)
+				AppMobi["context"]["loadSound"](src);
+			else
+				AppMobi["player"]["loadSound"](src);
+			return;
+		}
+		else if (api === API_PHONEGAP)
+		{
+			return;
+		}
+		this.getAudioInstance(src, "<preload>", is_music, false);
+	};
+	Acts.prototype.SetPlaybackRate = function (tag, rate)
+	{
+		getAudioByTag(tag);
+		if (rate < 0.0)
+			rate = 0;
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].setPlaybackRate(rate);
+	};
+	Acts.prototype.Stop = function (tag)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+			taggedAudio[i].stop();
+	};
+	Acts.prototype.StopAll = function ()
+	{
+		var i, len;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+			audioInstances[i].stop();
+	};
+	Acts.prototype.SetPaused = function (tag, state)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+		{
+			if (state === 0)
+				taggedAudio[i].pause();
+			else
+				taggedAudio[i].resume();
+		}
+	};
+	Acts.prototype.Seek = function (tag, pos)
+	{
+		getAudioByTag(tag);
+		var i, len;
+		for (i = 0, len = taggedAudio.length; i < len; i++)
+		{
+			taggedAudio[i].seek(pos);
+		}
+	};
+	Acts.prototype.SetSilent = function (s)
+	{
+		var i, len;
+		if (s === 2)					// toggling
+			s = (silent ? 1 : 0);		// choose opposite state
+		if (s === 0 && !silent)			// setting silent
+		{
+			for (i = 0, len = audioInstances.length; i < len; i++)
+				audioInstances[i].setSilent(true);
+			silent = true;
+		}
+		else if (s === 1 && silent)		// setting not silent
+		{
+			for (i = 0, len = audioInstances.length; i < len; i++)
+				audioInstances[i].setSilent(false);
+			silent = false;
+		}
+	};
+	Acts.prototype.SetMasterVolume = function (vol)
+	{
+		masterVolume = dbToLinear(vol);
+		var i, len;
+		for (i = 0, len = audioInstances.length; i < len; i++)
+			audioInstances[i].updateVolume();
+	};
+	Acts.prototype.AddFilterEffect = function (tag, type, freq, detune, q, gain, mix)
+	{
+		if (api !== API_WEBAUDIO || type < 0 || type >= filterTypes.length)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new FilterEffect(type, freq, detune, q, gain, mix));
+	};
+	Acts.prototype.AddDelayEffect = function (tag, delay, gain, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new DelayEffect(delay, dbToLinear(gain), mix));
+	};
+	Acts.prototype.AddFlangerEffect = function (tag, delay, modulation, freq, feedback, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new FlangerEffect(delay / 1000, modulation / 1000, freq, feedback / 100, mix));
+	};
+	Acts.prototype.AddPhaserEffect = function (tag, freq, detune, q, mod, modfreq, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new PhaserEffect(freq, detune, q, mod, modfreq, mix));
+	};
+	Acts.prototype.AddConvolutionEffect = function (tag, file, norm, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		var doNormalize = (norm === 0);
+		var src = this.runtime.files_subfolder + file[0] + (useOgg ? ".ogg" : ".m4a");
+		var b = this.getAudioBuffer(src, false);
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		var fx;
+		if (b.bufferObject)
+		{
+			fx = new ConvolveEffect(b.bufferObject, doNormalize, mix, src);
+		}
+		else
+		{
+			fx = new ConvolveEffect(null, doNormalize, mix, src);
+			b.normalizeWhenReady = doNormalize;
+			b.convolveWhenReady = fx;
+		}
+		addEffectForTag(tag, fx);
+	};
+	Acts.prototype.AddGainEffect = function (tag, g)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		addEffectForTag(tag, new GainEffect(dbToLinear(g)));
+	};
+	Acts.prototype.AddMuteEffect = function (tag)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		addEffectForTag(tag, new GainEffect(0));	// re-use gain effect with 0 gain
+	};
+	Acts.prototype.AddTremoloEffect = function (tag, freq, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new TremoloEffect(freq, mix));
+	};
+	Acts.prototype.AddRingModEffect = function (tag, freq, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new RingModulatorEffect(freq, mix));
+	};
+	Acts.prototype.AddDistortionEffect = function (tag, threshold, headroom, drive, makeupgain, mix)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		mix = mix / 100;
+		if (mix < 0) mix = 0;
+		if (mix > 1) mix = 1;
+		addEffectForTag(tag, new DistortionEffect(threshold, headroom, drive, makeupgain, mix));
+	};
+	Acts.prototype.AddCompressorEffect = function (tag, threshold, knee, ratio, attack, release)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		addEffectForTag(tag, new CompressorEffect(threshold, knee, ratio, attack / 1000, release / 1000));
+	};
+	Acts.prototype.AddAnalyserEffect = function (tag, fftSize, smoothing)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		addEffectForTag(tag, new AnalyserEffect(fftSize, smoothing));
+	};
+	Acts.prototype.RemoveEffects = function (tag)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		var i, len, arr;
+		if (effects.hasOwnProperty(tag))
+		{
+			arr = effects[tag];
+			if (arr.length)
+			{
+				for (i = 0, len = arr.length; i < len; i++)
+					arr[i].remove();
+				arr.length = 0;
+				reconnectEffects(tag);
+			}
+		}
+	};
+	Acts.prototype.SetEffectParameter = function (tag, index, param, value, ramp, time)
+	{
+		if (api !== API_WEBAUDIO)
+			return;
+		tag = tag.toLowerCase();
+		index = Math.floor(index);
+		var arr;
+		if (!effects.hasOwnProperty(tag))
+			return;
+		arr = effects[tag];
+		if (index < 0 || index >= arr.length)
+			return;
+		arr[index].setParam(param, value, ramp, time);
+	};
+	Acts.prototype.SetListenerObject = function (obj_)
+	{
+		if (!obj_ || api !== API_WEBAUDIO)
+			return;
+		var inst = obj_.getFirstPicked();
+		if (!inst)
+			return;
+		this.listenerTracker.setObject(inst);
+		listenerX = inst.x;
+		listenerY = inst.y;
+	};
+	Acts.prototype.SetListenerZ = function (z)
+	{
+		this.listenerZ = z;
+	};
+	pluginProto.acts = new Acts();
+	function Exps() {};
+	Exps.prototype.Duration = function (ret, tag)
+	{
+		getAudioByTag(tag);
+		if (taggedAudio.length)
+			ret.set_float(taggedAudio[0].getDuration());
+		else
+			ret.set_float(0);
+	};
+	Exps.prototype.PlaybackTime = function (ret, tag)
+	{
+		getAudioByTag(tag);
+		if (taggedAudio.length)
+			ret.set_float(taggedAudio[0].getPlaybackTime());
+		else
+			ret.set_float(0);
+	};
+	Exps.prototype.Volume = function (ret, tag)
+	{
+		getAudioByTag(tag);
+		if (taggedAudio.length)
+		{
+			var v = taggedAudio[0].getVolume();
+			ret.set_float(linearToDb(v));
+		}
+		else
+			ret.set_float(0);
+	};
+	Exps.prototype.MasterVolume = function (ret)
+	{
+		ret.set_float(masterVolume);
+	};
+	Exps.prototype.EffectCount = function (ret, tag)
+	{
+		tag = tag.toLowerCase();
+		var arr = null;
+		if (effects.hasOwnProperty(tag))
+			arr = effects[tag];
+		ret.set_int(arr ? arr.length : 0);
+	};
+	function getAnalyser(tag, index)
+	{
+		var arr = null;
+		if (effects.hasOwnProperty(tag))
+			arr = effects[tag];
+		if (arr && index >= 0 && index < arr.length && arr[index].freqBins)
+			return arr[index];
+		else
+			return null;
+	};
+	Exps.prototype.AnalyserFreqBinCount = function (ret, tag, index)
+	{
+		tag = tag.toLowerCase();
+		index = Math.floor(index);
+		var analyser = getAnalyser(tag, index);
+		ret.set_int(analyser ? analyser.node["frequencyBinCount"] : 0);
+	};
+	Exps.prototype.AnalyserFreqBinAt = function (ret, tag, index, bin)
+	{
+		tag = tag.toLowerCase();
+		index = Math.floor(index);
+		bin = Math.floor(bin);
+		var analyser = getAnalyser(tag, index);
+		if (!analyser)
+			ret.set_float(0);
+		else if (bin < 0 || bin >= analyser.node["frequencyBinCount"])
+			ret.set_float(0);
+		else
+			ret.set_float(analyser.freqBins[bin]);
+	};
+	Exps.prototype.AnalyserPeakLevel = function (ret, tag, index)
+	{
+		tag = tag.toLowerCase();
+		index = Math.floor(index);
+		var analyser = getAnalyser(tag, index);
+		if (analyser)
+			ret.set_float(analyser.peak);
+		else
+			ret.set_float(0);
+	};
+	Exps.prototype.AnalyserRMSLevel = function (ret, tag, index)
+	{
+		tag = tag.toLowerCase();
+		index = Math.floor(index);
+		var analyser = getAnalyser(tag, index);
+		if (analyser)
+			ret.set_float(analyser.rms);
+		else
+			ret.set_float(0);
+	};
+	pluginProto.exps = new Exps();
+}());
+;
+;
 cr.plugins_.Keyboard = function(runtime)
 {
 	this.runtime = runtime;
@@ -11652,6 +14758,8 @@ cr.plugins_.Sprite = function(runtime)
 			return;
 		var i, leni, j, lenj;
 		var anim, frame, animobj, frameobj, wt, uv;
+		this.all_frames = [];
+		this.has_loaded_textures = false;
 		for (i = 0, leni = this.animations.length; i < leni; i++)
 		{
 			anim = this.animations[i];
@@ -11706,6 +14814,7 @@ cr.plugins_.Sprite = function(runtime)
 				}
 				cr.seal(frameobj);
 				animobj.frames.push(frameobj);
+				this.all_frames.push(frameobj);
 			}
 			cr.seal(animobj);
 			this.animations[i] = animobj;		// swap array data for object
@@ -11724,96 +14833,62 @@ cr.plugins_.Sprite = function(runtime)
 	{
 		if (this.is_family)
 			return;
-		var i, leni, j, lenj;
-		var anim, frame, inst;
-		for (i = 0, leni = this.animations.length; i < leni; i++)
+		var i, len, frame;
+		for (i = 0, len = this.all_frames.length; i < len; ++i)
 		{
-			anim = this.animations[i];
-			for (j = 0, lenj = anim.frames.length; j < lenj; j++)
-			{
-				frame = anim.frames[j];
-				frame.texture_img.c2webGL_texture = null;
-				frame.webGL_texture = null;
-			}
+			frame = this.all_frames[i];
+			frame.texture_img.c2webGL_texture = null;
+			frame.webGL_texture = null;
 		}
 	};
 	typeProto.onRestoreWebGLContext = function ()
 	{
 		if (this.is_family || !this.instances.length)
 			return;
-		var i, leni, j, lenj;
-		var anim, frame, inst;
-		for (i = 0, leni = this.animations.length; i < leni; i++)
+		var i, len, frame;
+		for (i = 0, len = this.all_frames.length; i < len; ++i)
 		{
-			anim = this.animations[i];
-			for (j = 0, lenj = anim.frames.length; j < lenj; j++)
-			{
-				frame = anim.frames[j];
-				if (!frame.texture_img.c2webGL_texture)
-				{
-					frame.texture_img.c2webGL_texture = this.runtime.glwrap.loadTexture(frame.texture_img, false, this.runtime.linearSampling, frame.pixelformat);
-				}
-				frame.webGL_texture = frame.texture_img.c2webGL_texture;
-			}
+			frame = this.all_frames[i];
+			frame.webGL_texture = this.runtime.glwrap.loadTexture(frame.texture_img, false, this.runtime.linearSampling, frame.pixelformat);
 		}
-		for (i = 0, leni = this.instances.length; i < leni; i++)
-		{
-			inst = this.instances[i];
-			inst.curWebGLTexture = inst.curFrame.webGL_texture;
-		}
+		this.updateAllCurrentTexture();
 	};
-	var all_my_textures = [];
+	typeProto.loadTextures = function ()
+	{
+		if (this.is_family || this.has_loaded_textures || !this.runtime.glwrap)
+			return;
+		var i, len, frame;
+		for (i = 0, len = this.all_frames.length; i < len; ++i)
+		{
+			frame = this.all_frames[i];
+			frame.webGL_texture = this.runtime.glwrap.loadTexture(frame.texture_img, false, this.runtime.linearSampling, frame.pixelformat);
+		}
+		this.has_loaded_textures = true;
+	};
 	typeProto.unloadTextures = function ()
 	{
-		if (this.is_family || this.instances.length)
+		if (this.is_family || this.instances.length || !this.has_loaded_textures)
 			return;
-		var isWebGL = !!this.runtime.glwrap;
-		var i, leni, j, lenj, k;
-		var anim, frame, inst, o;
-		all_my_textures.length = 0;
-		for (i = 0, leni = this.animations.length; i < leni; i++)
+		var i, len, frame;
+		for (i = 0, len = this.all_frames.length; i < len; ++i)
 		{
-			anim = this.animations[i];
-			for (j = 0, lenj = anim.frames.length; j < lenj; j++)
-			{
-				frame = anim.frames[j];
-				o = (isWebGL ? frame.texture_img.c2webGL_texture : frame.texture_img);
-				if (!o)
-					continue;
-				k = all_my_textures.indexOf(o);
-				if (k === -1)
-					all_my_textures.push(o);
-				frame.texture_img.c2webGL_texture = null;
-				frame.webGL_texture = null;
-			}
+			frame = this.all_frames[i];
+			this.runtime.glwrap.deleteTexture(frame.webGL_texture);
 		}
-		for (i = 0, leni = all_my_textures.length; i < leni; i++)
-		{
-			o = all_my_textures[i];
-			if (isWebGL)
-				this.runtime.glwrap.deleteTexture(o);
-			else if (o["hintUnload"])
-				o["hintUnload"]();
-		}
-		all_my_textures.length = 0;
+		this.has_loaded_textures = false;
 	};
 	var already_drawn_images = [];
 	typeProto.preloadCanvas2D = function (ctx)
 	{
-		var i, leni, j, lenj;
-		var anim, frameimg;
+		var i, len, frameimg;
 		already_drawn_images.length = 0;
-		for (i = 0, leni = this.animations.length; i < leni; i++)
+		for (i = 0, len = this.all_frames.length; i < len; ++i)
 		{
-			anim = this.animations[i];
-			for (j = 0, lenj = anim.frames.length; j < lenj; j++)
-			{
-				frameimg = anim.frames[j].texture_img;
-				if (already_drawn_images.indexOf(frameimg) !== -1)
+			frameimg = this.all_frames[i].texture_img;
+			if (already_drawn_images.indexOf(frameimg) !== -1)
 					continue;
-				ctx.drawImage(frameimg, 0, 0);
-				already_drawn_images.push(frameimg);
-			}
+			ctx.drawImage(frameimg, 0, 0);
+			already_drawn_images.push(frameimg);
 		}
 	};
 	pluginProto.Instance = function(type)
@@ -11857,6 +14932,7 @@ cr.plugins_.Sprite = function(runtime)
 		this.changeAnimName = "";
 		this.changeAnimFrom = 0;
 		this.changeAnimFrame = -1;
+		this.type.loadTextures();
 		var i, leni, j, lenj;
 		var anim, frame, uv, maintex;
 		for (i = 0, leni = this.type.animations.length; i < leni; i++)
@@ -11865,8 +14941,6 @@ cr.plugins_.Sprite = function(runtime)
 			for (j = 0, lenj = anim.frames.length; j < lenj; j++)
 			{
 				frame = anim.frames[j];
-				if (frame.texture_img["hintLoad"])
-					frame.texture_img["hintLoad"]();
 				if (frame.width === 0)
 				{
 					frame.width = frame.texture_img.width;
@@ -11884,14 +14958,6 @@ cr.plugins_.Sprite = function(runtime)
 					{
 						frame.spritesheeted = false;
 					}
-				}
-				if (this.runtime.glwrap)
-				{
-					if (!frame.texture_img.c2webGL_texture)
-					{
-						frame.texture_img.c2webGL_texture = this.runtime.glwrap.loadTexture(frame.texture_img, false, this.runtime.linearSampling, frame.pixelformat);
-					}
-					frame.webGL_texture = frame.texture_img.c2webGL_texture;
 				}
 			}
 		}
@@ -13586,7 +16652,7 @@ cr.plugins_.TextBox = function(runtime)
 		jQuery(this.elem).width(Math.round(right - left));
 		jQuery(this.elem).height(Math.round(bottom - top));
 		if (this.autoFontSize)
-			jQuery(this.elem).css("font-size", (this.layer.getScale() - 0.2) + "em");
+			jQuery(this.elem).css("font-size", ((this.layer.getScale() / this.runtime.devicePixelRatio) - 0.2) + "em");
 	};
 	instanceProto.draw = function(ctx)
 	{
@@ -13729,23 +16795,18 @@ cr.plugins_.TiledBg = function(runtime)
 		for (i = 0, len = this.instances.length; i < len; i++)
 			this.instances[i].webGL_texture = this.webGL_texture;
 	};
+	typeProto.loadTextures = function ()
+	{
+		if (this.is_family || this.webGL_texture || !this.runtime.glwrap)
+			return;
+		this.webGL_texture = this.runtime.glwrap.loadTexture(this.texture_img, true, this.runtime.linearSampling, this.texture_pixelformat);
+	};
 	typeProto.unloadTextures = function ()
 	{
-		if (this.is_family || this.instances.length)
+		if (this.is_family || this.instances.length || !this.webGL_texture)
 			return;
-		if (this.runtime.glwrap)
-		{
-			if (this.webGL_texture)
-			{
-				this.runtime.glwrap.deleteTexture(this.webGL_texture);
-				this.webGL_texture = null;
-			}
-		}
-		else
-		{
-			if (this.texture_img["hintUnload"])
-				this.texture_img["hintUnload"]();
-		}
+		this.runtime.glwrap.deleteTexture(this.webGL_texture);
+		this.webGL_texture = null;
 	};
 	typeProto.preloadCanvas2D = function (ctx)
 	{
@@ -13765,16 +16826,11 @@ cr.plugins_.TiledBg = function(runtime)
 		this.texture_img = this.type.texture_img;
 		if (this.runtime.glwrap)
 		{
-			if (!this.type.webGL_texture)
-			{
-				this.type.webGL_texture = this.runtime.glwrap.loadTexture(this.type.texture_img, true, this.runtime.linearSampling, this.type.texture_pixelformat);
-			}
+			this.type.loadTextures();
 			this.webGL_texture = this.type.webGL_texture;
 		}
 		else
 		{
-			if (this.texture_img["hintLoad"])
-				this.texture_img["hintLoad"]();
 			if (!this.type.pattern)
 				this.type.pattern = this.runtime.ctx.createPattern(this.type.texture_img, "repeat");
 			this.pattern = this.type.pattern;
@@ -14257,6 +17313,30 @@ cr.getProjectModel = function() { return [
 	"Main Menu",
 	[
 	[
+		cr.plugins_.Keyboard,
+		true,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	]
+,	[
+		cr.plugins_.Mouse,
+		true,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	]
+,	[
 		cr.plugins_.Sprite,
 		false,
 		true,
@@ -14317,32 +17397,20 @@ cr.getProjectModel = function() { return [
 		false
 	]
 ,	[
+		cr.plugins_.Audio,
+		true,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	]
+,	[
 		cr.plugins_.Arr,
 		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false
-	]
-,	[
-		cr.plugins_.Keyboard,
-		true,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false,
-		false
-	]
-,	[
-		cr.plugins_.Mouse,
-		true,
 		false,
 		false,
 		false,
@@ -14524,22 +17592,6 @@ cr.getProjectModel = function() { return [
 	]
 ,	[
 		"t10",
-		cr.plugins_.Text,
-		false,
-		[],
-		0,
-		0,
-		null,
-		null,
-		[
-		],
-		false,
-		false,
-		9926120466859888,
-		[]
-	]
-,	[
-		"t11",
 		cr.plugins_.TiledBg,
 		false,
 		[],
@@ -14555,7 +17607,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t12",
+		"t11",
 		cr.plugins_.TiledBg,
 		false,
 		[],
@@ -14571,7 +17623,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t13",
+		"t12",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14588,7 +17640,7 @@ cr.getProjectModel = function() { return [
 			false,
 			8837858931969075,
 			[
-				["images/lockimage-sheet0.png", 858, 0, 0, 16, 16, 1, 0.5, 0.5,[],[-0.3125,-0.3125,0,-0.5,0.3125,-0.3125,0.4375,0,0.4375,0.4375,0,0.5,-0.4375,0.4375,-0.4375,0],0]
+				["images/lockimage-sheet0.png", 13595, 0, 0, 128, 128, 1, 0.5, 0.5,[],[-0.296875,-0.296875,0,-0.46875,0.296875,-0.296875,0.390625,0,0.390625,0.390625,0,0.484375,-0.390625,0.390625,-0.390625,0],0]
 			]
 			]
 		],
@@ -14600,7 +17652,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t14",
+		"t13",
 		cr.plugins_.Arr,
 		false,
 		[],
@@ -14616,7 +17668,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t15",
+		"t14",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14632,7 +17684,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t16",
+		"t15",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14648,7 +17700,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t17",
+		"t16",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14677,7 +17729,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t18",
+		"t17",
 		cr.plugins_.TextBox,
 		false,
 		[],
@@ -14693,7 +17745,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t19",
+		"t18",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14709,7 +17761,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t20",
+		"t19",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14726,7 +17778,7 @@ cr.getProjectModel = function() { return [
 			false,
 			4974974195139125,
 			[
-				["images/clockimage-sheet0.png", 926, 0, 0, 16, 16, 1, 0.5, 0.5,[],[-0.4375,-0.4375,0,-0.4375,0.375,-0.375,0.4375,0,0.3125,0.3125,0,0.4375,-0.3125,0.3125,-0.4375,0],0]
+				["images/clockimage-sheet0.png", 11461, 0, 0, 128, 128, 1, 0.5, 0.5,[],[-0.335937,-0.335937,0,-0.476563,0.335938,-0.335937,0.476563,0,0.335938,0.335938,0,0.476563,-0.335937,0.335938,-0.476563,0],0]
 			]
 			]
 		],
@@ -14738,7 +17790,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t21",
+		"t20",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14754,7 +17806,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t22",
+		"t21",
 		cr.plugins_.Arr,
 		false,
 		[],
@@ -14770,7 +17822,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t23",
+		"t22",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14786,7 +17838,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t24",
+		"t23",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14802,7 +17854,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t25",
+		"t24",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14818,7 +17870,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t26",
+		"t25",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14834,7 +17886,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t27",
+		"t26",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14850,7 +17902,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t28",
+		"t27",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -14866,7 +17918,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t29",
+		"t28",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14895,7 +17947,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t30",
+		"t29",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14924,7 +17976,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t31",
+		"t30",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14953,7 +18005,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t32",
+		"t31",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14982,7 +18034,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t33",
+		"t32",
 		cr.plugins_.Sprite,
 		false,
 		[],
@@ -14999,7 +18051,7 @@ cr.getProjectModel = function() { return [
 			false,
 			1303026953310624,
 			[
-				["images/crossimage-sheet0.png", 622, 0, 0, 16, 16, 1, 0.5, 0.5,[],[-0.3125,-0.3125,0,-0.1875,0.375,-0.375,0.1875,0,0.3125,0.3125,0,0.1875,-0.3125,0.3125,-0.1875,0],0]
+				["images/deleteimage-sheet0.png", 14976, 0, 0, 128, 128, 1, 0.5, 0.5,[],[-0.34375,-0.34375,0,-0.492188,0.34375,-0.34375,0.484375,0,0.335938,0.335938,0,0.476563,-0.335937,0.335938,-0.484375,0],0]
 			]
 			]
 		],
@@ -15011,7 +18063,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t34",
+		"t33",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -15027,7 +18079,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t35",
+		"t34",
 		cr.plugins_.Arr,
 		false,
 		[],
@@ -15043,7 +18095,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t36",
+		"t35",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -15059,7 +18111,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t37",
+		"t36",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -15075,7 +18127,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t38",
+		"t37",
 		cr.plugins_.Arr,
 		false,
 		[],
@@ -15091,7 +18143,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t39",
+		"t38",
 		cr.plugins_.TiledBg,
 		false,
 		[],
@@ -15107,7 +18159,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t40",
+		"t39",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -15123,7 +18175,7 @@ cr.getProjectModel = function() { return [
 		[]
 	]
 ,	[
-		"t41",
+		"t40",
 		cr.plugins_.Text,
 		false,
 		[],
@@ -15136,6 +18188,155 @@ cr.getProjectModel = function() { return [
 		false,
 		false,
 		4118329634605199,
+		[]
+	]
+,	[
+		"t41",
+		cr.plugins_.Sprite,
+		false,
+		[],
+		0,
+		0,
+		null,
+		[
+			[
+			"Default",
+			5,
+			false,
+			1,
+			0,
+			false,
+			6858771144801332,
+			[
+				["images/staricon-sheet0.png", 11033, 0, 0, 128, 128, 1, 0.5, 0.5,[],[-0.203125,-0.203125,0,-0.476563,0.203125,-0.203125,0.390625,0,0.304688,0.304688,0,0.328125,-0.304687,0.304688,-0.390625,0],0]
+			]
+			]
+		],
+		[
+		],
+		false,
+		false,
+		2237579760887318,
+		[]
+	]
+,	[
+		"t42",
+		cr.plugins_.Sprite,
+		false,
+		[],
+		0,
+		0,
+		null,
+		[
+			[
+			"Default",
+			5,
+			false,
+			1,
+			0,
+			false,
+			245783824056881,
+			[
+				["images/backicon-sheet0.png", 3149, 0, 0, 127, 70, 1, 0.503937, 0.5,[],[-0.204724,-0.371429,0,-0.285714,0.15748,-0.285714,0.480315,0,0.15748,0.285714,0,0.285714,-0.204724,0.371429,-0.488189,0],0]
+			]
+			]
+		],
+		[
+		],
+		false,
+		false,
+		5367891691984281,
+		[]
+	]
+,	[
+		"t43",
+		cr.plugins_.Audio,
+		false,
+		[],
+		0,
+		0,
+		null,
+		null,
+		[
+		],
+		false,
+		false,
+		4788673265651545,
+		[]
+		,[0,1,1,600,600,10000,1,5000,1]
+	]
+,	[
+		"t44",
+		cr.plugins_.Sprite,
+		false,
+		[],
+		0,
+		0,
+		null,
+		[
+			[
+			"Default",
+			5,
+			false,
+			1,
+			0,
+			false,
+			9106349819685011,
+			[
+				["images/winpopup-sheet0.png", 156, 0, 0, 256, 256, 1, 0.5, 0.5,[],[],4]
+			]
+			]
+		],
+		[
+		],
+		false,
+		false,
+		8252785369655322,
+		[]
+	]
+,	[
+		"t45",
+		cr.plugins_.Sprite,
+		false,
+		[],
+		0,
+		0,
+		null,
+		[
+			[
+			"Default",
+			5,
+			false,
+			1,
+			0,
+			false,
+			3473211323702819,
+			[
+				["images/losepopup-sheet0.png", 156, 0, 0, 256, 256, 1, 0.5, 0.5,[],[],4]
+			]
+			]
+		],
+		[
+		],
+		false,
+		false,
+		3938959005696537,
+		[]
+	]
+,	[
+		"t46",
+		cr.plugins_.Text,
+		false,
+		[],
+		0,
+		0,
+		null,
+		null,
+		[
+		],
+		false,
+		false,
+		6177370002967616,
 		[]
 	]
 	],
@@ -15166,6 +18367,26 @@ cr.getProjectModel = function() { return [
 			0,
 			[
 			[
+				[246, 408, 0, 150, 32, 0, 0, 1, 0, 0, 0, 0, []],
+				26,
+				83,
+				[
+				],
+				[
+				],
+				[
+					"Bcak to meun",
+					1,
+					"18pt Arial",
+					"rgb(0,0,0)",
+					1,
+					1,
+					1,
+					0,
+					0
+				]
+			]
+,			[
 				[0, 0, 0, 640, 480, 0, 0, 1, 0, 0, 0, 0, []],
 				2,
 				2,
@@ -15207,7 +18428,7 @@ cr.getProjectModel = function() { return [
 				[
 					"Laenr To Sepll",
 					0,
-					"bold 36pt Arial",
+					"36pt Arial",
 					"rgb(0,0,0)",
 					1,
 					1,
@@ -15277,8 +18498,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[400, 318, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				13,
+				[396, 325, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				12,
 				15,
 				[
 				],
@@ -15293,7 +18514,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[416, 334, 0, 180, 20, 0, 0, 1, 0, 0, 0, 0, []],
-				28,
+				27,
 				32,
 				[
 				],
@@ -15306,6 +18527,26 @@ cr.getProjectModel = function() { return [
 					"rgb(0,0,0)",
 					0,
 					0,
+					0,
+					0,
+					0
+				]
+			]
+,			[
+				[0, 440, 0, 640, 40, 0, 0, 1, 0, 0, 0, 0, []],
+				46,
+				84,
+				[
+				],
+				[
+				],
+				[
+					"Made by Georges Nguyen - Images by artbees - Icons by kyo-tux",
+					0,
+					"12pt Arial",
+					"rgb(0,0,0)",
+					1,
+					1,
 					0,
 					0,
 					0
@@ -15358,7 +18599,7 @@ cr.getProjectModel = function() { return [
 		[
 			[
 				null,
-				14,
+				13,
 				16,
 				[
 				],
@@ -15372,7 +18613,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				null,
-				22,
+				21,
 				26,
 				[
 				],
@@ -15386,7 +18627,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				null,
-				35,
+				34,
 				47,
 				[
 				],
@@ -15400,14 +18641,14 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				null,
-				38,
+				37,
 				68,
 				[
 				],
 				[
 				],
 				[
-					5,
+					10,
 					2,
 					1
 				]
@@ -15451,40 +18692,22 @@ cr.getProjectModel = function() { return [
 					0
 				]
 			]
-			],
-			[			]
-		]
-,		[
-			"Objects",
-			1,
-			9137932300410905,
-			true,
-			[255, 255, 255],
-			true,
-			1,
-			1,
-			1,
-			false,
-			1,
-			0,
-			0,
-			[
-			[
-				[0, 448, 0, 60, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				10,
-				10,
+,			[
+				[0, 80, 0, 110, 40, 0, 0, 1, 0, 0, 0, 0, []],
+				5,
+				18,
 				[
 				],
 				[
 				],
 				[
-					"Bcak",
+					"Bgenienr",
 					0,
 					"18pt Arial",
 					"rgb(0,0,0)",
-					0,
-					0,
-					0,
+					1,
+					1,
+					1,
 					0,
 					0
 				]
@@ -15510,28 +18733,41 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[0, 80, 0, 110, 40, 0, 0, 1, 0, 0, 0, 0, []],
-				5,
-				18,
+				[37, 457, 0, 64, 35, 0, 0, 1, 0.503937, 0.5, 0, 0, []],
+				42,
+				77,
 				[
 				],
 				[
 				],
 				[
-					"Bgenienr",
 					0,
-					"18pt Arial",
-					"rgb(0,0,0)",
-					1,
-					1,
-					1,
+					"Default",
 					0,
-					0
+					1
 				]
 			]
-,			[
-				[440, 440, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				21,
+			],
+			[			]
+		]
+,		[
+			"Objects",
+			1,
+			9137932300410905,
+			true,
+			[255, 255, 255],
+			true,
+			1,
+			1,
+			1,
+			false,
+			1,
+			0,
+			0,
+			[
+			[
+				[440, 433, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				20,
 				25,
 				[
 				],
@@ -15540,7 +18776,7 @@ cr.getProjectModel = function() { return [
 				[
 					"10",
 					1,
-					"12pt Arial",
+					"16pt Arial",
 					"rgb(255,0,0)",
 					0,
 					1,
@@ -15550,8 +18786,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[418, 453, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				20,
+				[420, 447, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				19,
 				24,
 				[
 				],
@@ -15565,8 +18801,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[246, 440, 0, 150, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				18,
+				[246, 434, 0, 150, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				17,
 				22,
 				[
 				],
@@ -15586,29 +18822,44 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[409, 393, 0, 70, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				19,
+				[440, 403, 0, 40, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				18,
 				23,
 				[
 				],
 				[
 				],
 				[
-					"0/5",
+					"5/5",
 					1,
-					"18pt Arial",
+					"16pt Arial",
 					"rgb(0,0,0)",
 					0,
-					0,
+					1,
 					0,
 					0,
 					0
 				]
 			]
 ,			[
-				[230, 454, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				33,
+				[230, 448, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				32,
 				37,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[420, 417, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				41,
+				74,
 				[
 				],
 				[
@@ -15640,7 +18891,7 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[320, 320, 0, 64, 64, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				17,
+				16,
 				21,
 				[
 				],
@@ -15655,7 +18906,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 320, 0, 64, 64, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				29,
+				28,
 				33,
 				[
 				],
@@ -15670,7 +18921,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 320, 0, 64, 64, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				30,
+				29,
 				34,
 				[
 				],
@@ -15685,7 +18936,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 320, 0, 64, 64, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				31,
+				30,
 				35,
 				[
 				],
@@ -15700,7 +18951,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 320, 0, 64, 64, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				32,
+				31,
 				36,
 				[
 				],
@@ -15732,8 +18983,38 @@ cr.getProjectModel = function() { return [
 			0,
 			[
 			[
-				[320, 300, 0, 200, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				16,
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				45,
+				78,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				44,
+				73,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[320, 300, 0, 200, 40, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				15,
 				20,
 				[
 				],
@@ -15753,7 +19034,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 160, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				23,
+				22,
 				27,
 				[
 				],
@@ -15765,7 +19046,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -15773,7 +19054,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 275, 0, 120, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				24,
+				23,
 				28,
 				[
 				],
@@ -15785,7 +19066,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -15793,7 +19074,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 100, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				25,
+				24,
 				30,
 				[
 				],
@@ -15805,15 +19086,15 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
 				]
 			]
 ,			[
-				[320, 275, 0, 120, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				26,
+				[320, 275, 0, 120, 40, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				25,
 				31,
 				[
 				],
@@ -15825,7 +19106,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -15833,7 +19114,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 310, 0, 150, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				27,
+				26,
 				29,
 				[
 				],
@@ -15845,15 +19126,15 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
 				]
 			]
 ,			[
-				[320, 268, 0, 390, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				15,
+				[320, 268, 0, 390, 40, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				14,
 				19,
 				[
 				],
@@ -15904,7 +19185,7 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[0, 0, 0, 640, 480, 0, 0, 1, 0, 0, 0, 0, []],
-				11,
+				10,
 				11,
 				[
 				],
@@ -15915,40 +19196,37 @@ cr.getProjectModel = function() { return [
 					0
 				]
 			]
-			],
-			[			]
-		]
-,		[
-			"Objects",
-			1,
-			1841448792966493,
-			true,
-			[255, 255, 255],
-			true,
-			1,
-			1,
-			1,
-			false,
-			1,
-			0,
-			0,
-			[
-			[
-				[0, 448, 0, 60, 32, 0, 0, 1, 0, 0, 0, 0, []],
+,			[
+				[37, 457, 0, 64, 35, 0, 0, 1, 0.503937, 0.5, 0, 0, []],
+				42,
 				10,
-				12,
 				[
 				],
 				[
 				],
 				[
-					"Bcak",
+					0,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[1, 80, 0, 120, 40, 0, 0, 1, 0, 0, 0, 0, []],
+				6,
+				63,
+				[
+				],
+				[
+				],
+				[
+					"Satdnrad",
 					0,
 					"18pt Arial",
 					"rgb(0,0,0)",
-					0,
-					0,
-					0,
+					1,
+					1,
+					1,
 					0,
 					0
 				]
@@ -15973,9 +19251,27 @@ cr.getProjectModel = function() { return [
 					0
 				]
 			]
-,			[
-				[604, 434, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				21,
+			],
+			[			]
+		]
+,		[
+			"Objects",
+			1,
+			1841448792966493,
+			true,
+			[255, 255, 255],
+			true,
+			1,
+			1,
+			1,
+			false,
+			1,
+			0,
+			0,
+			[
+			[
+				[580, 433, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				20,
 				42,
 				[
 				],
@@ -15984,7 +19280,7 @@ cr.getProjectModel = function() { return [
 				[
 					"10",
 					1,
-					"12pt Arial",
+					"16pt Arial",
 					"rgb(255,0,0)",
 					0,
 					1,
@@ -15994,8 +19290,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[582, 447, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				20,
+				[565, 447, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				19,
 				43,
 				[
 				],
@@ -16009,8 +19305,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[67, 448, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				33,
+				[87, 448, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				32,
 				45,
 				[
 				],
@@ -16024,8 +19320,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[80, 434, 0, 480, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				18,
+				[100, 434, 0, 440, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				17,
 				44,
 				[
 				],
@@ -16045,17 +19341,17 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[568, 388, 0, 70, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				19,
+				[580, 403, 0, 60, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				18,
 				46,
 				[
 				],
 				[
 				],
 				[
-					"0/5",
+					"10/10",
 					1,
-					"18pt Arial",
+					"16pt Arial",
 					"rgb(0,0,0)",
 					0,
 					0,
@@ -16065,23 +19361,18 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[1, 80, 0, 120, 40, 0, 0, 1, 0, 0, 0, 0, []],
-				6,
-				63,
+				[565, 417, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				41,
+				75,
 				[
 				],
 				[
 				],
 				[
-					"Satdnrad",
+					1,
+					"Default",
 					0,
-					"18pt Arial",
-					"rgb(0,0,0)",
-					1,
-					1,
-					1,
-					0,
-					0
+					1
 				]
 			]
 			],
@@ -16104,7 +19395,7 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[320, 350, 0, 600, 30, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				36,
+				35,
 				53,
 				[
 				],
@@ -16141,8 +19432,38 @@ cr.getProjectModel = function() { return [
 			0,
 			[
 			[
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				45,
+				80,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				44,
+				79,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
 				[320, 310, 0, 150, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				27,
+				26,
 				48,
 				[
 				],
@@ -16154,7 +19475,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16162,7 +19483,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 160, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				23,
+				22,
 				49,
 				[
 				],
@@ -16174,7 +19495,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16182,7 +19503,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 100, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				25,
+				24,
 				50,
 				[
 				],
@@ -16194,7 +19515,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16202,7 +19523,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 275, 0, 160, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				24,
+				23,
 				51,
 				[
 				],
@@ -16214,15 +19535,15 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
 				]
 			]
 ,			[
-				[320, 275, 0, 120, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				26,
+				[320, 275, 0, 120, 40, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				25,
 				52,
 				[
 				],
@@ -16234,7 +19555,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16242,7 +19563,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 268, 0, 480, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				34,
+				33,
 				40,
 				[
 				],
@@ -16262,7 +19583,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 300, 0, 200, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				16,
+				15,
 				41,
 				[
 				],
@@ -16313,51 +19634,13 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[0, 0, 0, 640, 480, 0, 0, 1, 0, 0, 0, 0, []],
-				12,
+				11,
 				13,
 				[
 				],
 				[
 				],
 				[
-					0,
-					0
-				]
-			]
-			],
-			[			]
-		]
-,		[
-			"Objects",
-			1,
-			5799491439926609,
-			true,
-			[255, 255, 255],
-			true,
-			1,
-			1,
-			1,
-			false,
-			1,
-			0,
-			0,
-			[
-			[
-				[0, 448, 0, 60, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				10,
-				14,
-				[
-				],
-				[
-				],
-				[
-					"Bcak",
-					0,
-					"18pt Arial",
-					"rgb(0,0,0)",
-					0,
-					0,
-					0,
 					0,
 					0
 				]
@@ -16383,8 +19666,76 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[604, 434, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				21,
+				[1, 80, 0, 120, 40, 0, 0, 1, 0, 0, 0, 0, []],
+				7,
+				56,
+				[
+				],
+				[
+				],
+				[
+					"Avdnaecd",
+					0,
+					"18pt Arial",
+					"rgb(0,0,0)",
+					1,
+					1,
+					1,
+					0,
+					0
+				]
+			]
+,			[
+				[37, 457, 0, 64, 35, 0, 0, 1, 0.503937, 0.5, 0, 0, []],
+				42,
+				12,
+				[
+				],
+				[
+				],
+				[
+					0,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				45,
+				82,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+			],
+			[			]
+		]
+,		[
+			"Objects",
+			1,
+			5799491439926609,
+			true,
+			[255, 255, 255],
+			true,
+			1,
+			1,
+			1,
+			false,
+			1,
+			0,
+			0,
+			[
+			[
+				[580, 433, 0, 30, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				20,
 				58,
 				[
 				],
@@ -16393,7 +19744,7 @@ cr.getProjectModel = function() { return [
 				[
 					"10",
 					1,
-					"12pt Arial",
+					"16pt Arial",
 					"rgb(255,0,0)",
 					0,
 					1,
@@ -16403,8 +19754,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[582, 447, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				20,
+				[565, 447, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				19,
 				59,
 				[
 				],
@@ -16418,8 +19769,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[67, 448, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				33,
+				[87, 448, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				32,
 				60,
 				[
 				],
@@ -16433,8 +19784,8 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[80, 434, 0, 480, 30, 0, 0, 1, 0, 0, 0, 0, []],
-				18,
+				[100, 434, 0, 440, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				17,
 				61,
 				[
 				],
@@ -16454,17 +19805,17 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[568, 388, 0, 70, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				19,
+				[580, 403, 0, 60, 30, 0, 0, 1, 0, 0, 0, 0, []],
+				18,
 				62,
 				[
 				],
 				[
 				],
 				[
-					"0/5",
+					"10/10",
 					1,
-					"18pt Arial",
+					"16pt Arial",
 					"rgb(0,0,0)",
 					0,
 					0,
@@ -16474,23 +19825,18 @@ cr.getProjectModel = function() { return [
 				]
 			]
 ,			[
-				[1, 80, 0, 120, 40, 0, 0, 1, 0, 0, 0, 0, []],
-				7,
-				56,
+				[565, 417, 0, 16, 16, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				41,
+				76,
 				[
 				],
 				[
 				],
 				[
-					"Avdnaecd",
+					1,
+					"Default",
 					0,
-					"18pt Arial",
-					"rgb(0,0,0)",
-					1,
-					1,
-					1,
-					0,
-					0
+					1
 				]
 			]
 			],
@@ -16513,7 +19859,7 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[320, 350, 0, 600, 70, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				36,
+				35,
 				69,
 				[
 				],
@@ -16550,8 +19896,23 @@ cr.getProjectModel = function() { return [
 			0,
 			[
 			[
+				[320, 275, 0, 160, 120, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				44,
+				81,
+				[
+				],
+				[
+				],
+				[
+					1,
+					"Default",
+					0,
+					1
+				]
+			]
+,			[
 				[320, 268, 0, 480, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				37,
+				36,
 				39,
 				[
 				],
@@ -16571,7 +19932,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 300, 0, 200, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				16,
+				15,
 				57,
 				[
 				],
@@ -16591,7 +19952,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 310, 0, 150, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				27,
+				26,
 				55,
 				[
 				],
@@ -16603,7 +19964,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16611,7 +19972,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 160, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				23,
+				22,
 				64,
 				[
 				],
@@ -16623,7 +19984,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16631,7 +19992,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 240, 0, 100, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				25,
+				24,
 				65,
 				[
 				],
@@ -16643,7 +20004,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16651,7 +20012,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 275, 0, 160, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				24,
+				23,
 				66,
 				[
 				],
@@ -16663,15 +20024,15 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
 				]
 			]
 ,			[
-				[320, 275, 0, 120, 32, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				26,
+				[320, 275, 0, 120, 40, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				25,
 				67,
 				[
 				],
@@ -16683,7 +20044,7 @@ cr.getProjectModel = function() { return [
 					"18pt Arial",
 					"rgb(0,0,0)",
 					1,
-					0,
+					1,
 					1,
 					0,
 					0
@@ -16722,7 +20083,7 @@ cr.getProjectModel = function() { return [
 			[
 			[
 				[0, 0, 0, 640, 480, 0, 0, 1, 0, 0, 0, 0, []],
-				39,
+				38,
 				70,
 				[
 				],
@@ -16752,8 +20113,8 @@ cr.getProjectModel = function() { return [
 			0,
 			[
 			[
-				[320, 150, 0, 420, 70, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				40,
+				[320, 150, 0, 420, 90, 0, 0, 1, 0.5, 0.5, 0, 0, []],
+				39,
 				71,
 				[
 				],
@@ -16773,7 +20134,7 @@ cr.getProjectModel = function() { return [
 			]
 ,			[
 				[320, 225, 0, 420, 70, 0, 0, 1, 0.5, 0.5, 0, 0, []],
-				41,
+				40,
 				72,
 				[
 				],
@@ -16787,26 +20148,6 @@ cr.getProjectModel = function() { return [
 					1,
 					1,
 					1,
-					0,
-					0
-				]
-			]
-,			[
-				[0, 448, 0, 60, 32, 0, 0, 1, 0, 0, 0, 0, []],
-				10,
-				73,
-				[
-				],
-				[
-				],
-				[
-					"Bcak",
-					0,
-					"18pt Arial",
-					"rgb(0,0,0)",
-					0,
-					0,
-					0,
 					0,
 					0
 				]
@@ -16850,23 +20191,45 @@ false,false,3578794167545708
 			],
 			[
 			[
-				3,
+				7,
 				cr.plugins_.Text.prototype.acts.SetWebFont,
 				null,
-				9046824935754593
+				1659217817962605
 				,[
 				[
 					1,
 					[
 						2,
-						"chock_a_block_nfregular"
+						"Oswald"
 					]
 				]
 ,				[
 					1,
 					[
 						2,
-						"http://gnguyen.github.io/learn-to-spell/chock-a-blocknf-webfont.woff"
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				5,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4671162000833215
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
 					]
 				]
 				]
@@ -16875,20 +20238,130 @@ false,false,3578794167545708
 				4,
 				cr.plugins_.Text.prototype.acts.SetWebFont,
 				null,
-				5730016499075548
+				5718074145624225
 				,[
 				[
 					1,
 					[
 						2,
-						"chock_a_block_nfregular"
+						"Kite One"
 					]
 				]
 ,				[
 					1,
 					[
 						2,
-						"http://gnguyen.github.io/learn-to-spell/chock-a-blocknf-webfont.woff"
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				46,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9927852967716495
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				27,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				8878437762863864
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				6,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5273174239221812
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				3,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9307225522975611
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				26,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4490514788471298
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
 					]
 				]
 				]
@@ -17008,10 +20481,22 @@ false,false,3578794167545708
 					]
 				]
 ,				[
-					13,
+					12,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					7253598907596744
+					,[
+					[
+						3,
+						0
+					]
+					]
+				]
+,				[
+					46,
+					cr.plugins_.Text.prototype.acts.SetVisible,
+					null,
+					2281346928507504
 					,[
 					[
 						3,
@@ -17049,7 +20534,7 @@ false,false,3578794167545708
 				],
 				[
 				[
-					13,
+					12,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					8351216675106521
@@ -17057,6 +20542,56 @@ false,false,3578794167545708
 					[
 						3,
 						0
+					]
+					]
+				]
+				]
+			]
+,			[
+				0,
+				null,
+				false,
+				5272126272246381,
+				[
+				[
+					43,
+					cr.plugins_.Audio.prototype.cnds.IsAnyPlaying,
+					null,
+					0,
+					false,
+					true,
+					false,
+					8801026737455341
+				]
+				],
+				[
+				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					5003639192357261
+					,[
+					[
+						2,
+						["mattoglseby - 1",true]
+					]
+,					[
+						3,
+						1
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							""
+						]
 					]
 					]
 				]
@@ -17183,10 +20718,22 @@ false,false,3578794167545708
 				]
 			]
 ,			[
-				13,
+				12,
 				cr.plugins_.Sprite.prototype.acts.SetVisible,
 				null,
 				7266939671103188
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				46,
+				cr.plugins_.Text.prototype.acts.SetVisible,
+				null,
+				6488731451729704
 				,[
 				[
 					3,
@@ -17401,12 +20948,12 @@ false,false,3578794167545708
 				,[
 				[
 					4,
-					13
+					12
 				]
 				]
 			]
 ,			[
-				13,
+				12,
 				cr.plugins_.Sprite.prototype.cnds.IsVisible,
 				null,
 				0,
@@ -17418,7 +20965,7 @@ false,false,3578794167545708
 			],
 			[
 			[
-				28,
+				27,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				1669046041969553
@@ -17450,7 +20997,7 @@ false,false,3578794167545708
 			],
 			[
 			[
-				28,
+				27,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				5456317994400919
@@ -17554,7 +21101,7 @@ false,false,6416639588095725
 			],
 			[
 			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4127584515132053
@@ -17583,7 +21130,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				6833148597687744
@@ -17612,7 +21159,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				260403063834616
@@ -17641,7 +21188,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				825647281712147
@@ -17670,7 +21217,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4539358071618075
@@ -17699,7 +21246,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				5236285228493008
@@ -17728,7 +21275,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1760942969674022
@@ -17757,7 +21304,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				298295244840198
@@ -17786,7 +21333,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8853938726438372
@@ -17815,7 +21362,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				14,
+				13,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4913503483057032
@@ -17843,6 +21390,292 @@ false,false,6416639588095725
 				]
 				]
 			]
+,			[
+				26,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5669649353514473
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				15,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4659315680261612
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				5,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4499220683580732
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				14,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				1612333628068582
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				22,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7369653784648928
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				24,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				947290152941211
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				23,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4122217390361313
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				18,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7995868442738186
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				35,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2710037528224854
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				20,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2806939258923028
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				3,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				1749385965730598
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				25,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4261302701773514
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				17,
+				cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
+				null,
+				2607595469873755
+				,[
+				[
+					1,
+					[
+						2,
+						"font-family"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+				]
+			]
 			]
 		]
 ,		[
@@ -17864,7 +21697,7 @@ false,false,6416639588095725
 			],
 			[
 			[
-				21,
+				20,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				393272552179855
@@ -17879,7 +21712,7 @@ false,false,6416639588095725
 				]
 			]
 ,			[
-				19,
+				18,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				7034711642440134
@@ -18009,7 +21842,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					3164602690645167
@@ -18021,7 +21854,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					25,
+					24,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					6086614471419932
@@ -18033,7 +21866,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					6221258840419866
@@ -18045,7 +21878,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					24,
+					23,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					1051053935071794
@@ -18057,7 +21890,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					26,
+					25,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					5625424188182808
@@ -18107,7 +21940,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					4737281128092167
@@ -18122,7 +21955,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetEnabled,
 					null,
 					5841246741982223
@@ -18134,13 +21967,13 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetFocus,
 					null,
 					4074278712588095
 				]
 ,				[
-					17,
+					16,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					7860016451615871
@@ -18152,7 +21985,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					29,
+					28,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					1934772239414966
@@ -18164,7 +21997,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					30,
+					29,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					9962849026897808
@@ -18176,7 +22009,7 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					31,
+					30,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					1914271883354881
@@ -18188,10 +22021,34 @@ false,false,6416639588095725
 					]
 				]
 ,				[
-					32,
+					31,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5172408253565634
+					,[
+					[
+						3,
+						0
+					]
+					]
+				]
+,				[
+					45,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					6221558901032564
+					,[
+					[
+						3,
+						0
+					]
+					]
+				]
+,				[
+					44,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					4851767955539973
 					,[
 					[
 						3,
@@ -18231,7 +22088,7 @@ false,false,6416639588095725
 						7,
 						[
 							20,
-							22,
+							21,
 							cr.plugins_.Arr.prototype.exps.At,
 							false,
 							null
@@ -18331,7 +22188,7 @@ false,false,6416639588095725
 				],
 				[
 				[
-					17,
+					16,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5448711740214802
@@ -18380,7 +22237,7 @@ false,false,6416639588095725
 				],
 				[
 				[
-					29,
+					28,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5381246771479372
@@ -18429,7 +22286,7 @@ false,false,6416639588095725
 				],
 				[
 				[
-					30,
+					29,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					1693940583401074
@@ -18478,7 +22335,7 @@ false,false,6416639588095725
 				],
 				[
 				[
-					31,
+					30,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					1401152906411847
@@ -18527,7 +22384,7 @@ false,false,6416639588095725
 				],
 				[
 				[
-					32,
+					31,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5228915129907016
@@ -18683,7 +22540,7 @@ false,false,9336414104857523
 							,[
 [
 								20,
-								14,
+								13,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -18721,7 +22578,7 @@ false,false,9336414104857523
 							,[
 [
 								20,
-								18,
+								17,
 								cr.plugins_.TextBox.prototype.exps.Text,
 								true,
 								null
@@ -18732,7 +22589,7 @@ false,false,9336414104857523
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					2073364493005902
@@ -18806,7 +22663,7 @@ false,false,9336414104857523
 					]
 				]
 ,				[
-					22,
+					21,
 					cr.plugins_.Arr.prototype.acts.SetX,
 					null,
 					8495870765306487
@@ -18865,6 +22722,36 @@ false,false,9336414104857523
 					]
 					]
 				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					2353243248008732
+					,[
+					[
+						2,
+						["squaremotif1",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
+						]
+					]
+					]
+				]
 				]
 			]
 ,			[
@@ -18886,7 +22773,7 @@ false,false,9336414104857523
 				],
 				[
 				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					3761683237460343
@@ -18898,7 +22785,7 @@ false,false,9336414104857523
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					1466305474326473
@@ -18935,7 +22822,7 @@ false,false,9336414104857523
 					]
 				]
 ,				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					6250308560351819
@@ -18947,7 +22834,7 @@ false,false,9336414104857523
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					427000382501975
@@ -18964,6 +22851,36 @@ false,false,9336414104857523
 						[
 							2,
 							"white"
+						]
+					]
+					]
+				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					9492907494100836
+					,[
+					[
+						2,
+						["sfx5",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
 						]
 					]
 					]
@@ -19008,7 +22925,7 @@ false,false,9336414104857523
 			],
 			[
 			[
-				27,
+				26,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				4225692058785814
@@ -19020,7 +22937,7 @@ false,false,9336414104857523
 				]
 			]
 ,			[
-				25,
+				24,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				2545212898508453
@@ -19032,10 +22949,22 @@ false,false,9336414104857523
 				]
 			]
 ,			[
-				26,
+				25,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				9669836125434863
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				45,
+				cr.plugins_.Sprite.prototype.acts.SetVisible,
+				null,
+				325280619113818
 				,[
 				[
 					3,
@@ -19078,7 +23007,7 @@ false,false,8014654314990763
 							,[
 [
 								20,
-								14,
+								13,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -19099,7 +23028,7 @@ false,false,8014654314990763
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					9833727356856805
@@ -19114,7 +23043,7 @@ false,false,8014654314990763
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetEnabled,
 					null,
 					6741331458203798
@@ -19164,6 +23093,42 @@ false,false,8014654314990763
 			]
 			],
 			[
+			[
+				26,
+				cr.plugins_.Text.prototype.acts.SetVisible,
+				null,
+				1359226511016905
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				22,
+				cr.plugins_.Text.prototype.acts.SetVisible,
+				null,
+				5795885543031642
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				44,
+				cr.plugins_.Sprite.prototype.acts.SetVisible,
+				null,
+				6533881113649991
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
 			]
 			,[
 			[
@@ -19202,31 +23167,7 @@ false,false,8014654314990763
 				],
 				[
 				[
-					27,
-					cr.plugins_.Text.prototype.acts.SetVisible,
-					null,
-					6483371197410454
-					,[
-					[
-						3,
-						1
-					]
-					]
-				]
-,				[
 					23,
-					cr.plugins_.Text.prototype.acts.SetVisible,
-					null,
-					4663560575217982
-					,[
-					[
-						3,
-						1
-					]
-					]
-				]
-,				[
-					24,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					8268518247079155
@@ -19258,7 +23199,7 @@ false,false,8014654314990763
 				],
 				[
 				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetText,
 					null,
 					4640339691707891
@@ -19269,30 +23210,6 @@ false,false,8014654314990763
 							2,
 							"All croertc!"
 						]
-					]
-					]
-				]
-,				[
-					23,
-					cr.plugins_.Text.prototype.acts.SetVisible,
-					null,
-					5345331149655922
-					,[
-					[
-						3,
-						1
-					]
-					]
-				]
-,				[
-					27,
-					cr.plugins_.Text.prototype.acts.SetVisible,
-					null,
-					1859582342902099
-					,[
-					[
-						3,
-						1
 					]
 					]
 				]
@@ -19342,7 +23259,7 @@ false,true,497394394626088
 			],
 			[
 			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				9357106658741644
@@ -19371,7 +23288,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1153633118003902
@@ -19400,7 +23317,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				2754655971889357
@@ -19429,7 +23346,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				7546058512988155
@@ -19458,7 +23375,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				3063459353802178
@@ -19487,7 +23404,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				2828137945585697
@@ -19516,7 +23433,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1281848554829254
@@ -19545,7 +23462,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8825566876342545
@@ -19574,7 +23491,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				6307913850872124
@@ -19603,7 +23520,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8796780737590039
@@ -19632,7 +23549,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				6267840784533774
@@ -19661,7 +23578,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1930024581267814
@@ -19690,7 +23607,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8012795687623622
@@ -19719,7 +23636,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8056249683187877
@@ -19748,7 +23665,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4687722224156399
@@ -19777,7 +23694,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8677265344099373
@@ -19806,7 +23723,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8063180986036127
@@ -19835,7 +23752,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				2903570248727153
@@ -19864,7 +23781,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1140915166349952
@@ -19893,7 +23810,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				35,
+				34,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				9546795340070523
@@ -19921,6 +23838,270 @@ false,true,497394394626088
 				]
 				]
 			]
+,			[
+				26,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2826274780155086
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				15,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5175300117312814
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				22,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5682293387893467
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				24,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				6134721409249437
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				23,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7280514939106252
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				18,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7673429633878931
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				35,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				4167875355661485
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				6,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2759350632106152
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				33,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				1165156494490831
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				20,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2401177412926352
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				3,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				1077191033682238
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				25,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7436069131940395
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
 			]
 		]
 ,		[
@@ -19942,7 +24123,7 @@ false,true,497394394626088
 			],
 			[
 			[
-				21,
+				20,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				1986475862468238
@@ -19957,7 +24138,7 @@ false,true,497394394626088
 				]
 			]
 ,			[
-				19,
+				18,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				5686144189565342
@@ -20087,7 +24268,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9418110556149603
@@ -20099,7 +24280,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					25,
+					24,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					1139847962810989
@@ -20111,7 +24292,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9170414442170766
@@ -20123,7 +24304,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					24,
+					23,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					4798266717131491
@@ -20135,7 +24316,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					26,
+					25,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					8426302470074289
@@ -20185,7 +24366,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					3291706478865002
@@ -20200,10 +24381,46 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					18,
+					17,
+					cr.plugins_.TextBox.prototype.acts.SetEnabled,
+					null,
+					3924698508772488
+					,[
+					[
+						3,
+						1
+					]
+					]
+				]
+,				[
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetFocus,
 					null,
 					9940542804988949
+				]
+,				[
+					45,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					4393611062022583
+					,[
+					[
+						3,
+						0
+					]
+					]
+				]
+,				[
+					44,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					5382261634507283
+					,[
+					[
+						3,
+						0
+					]
+					]
 				]
 				]
 			]
@@ -20237,7 +24454,7 @@ false,true,497394394626088
 						7,
 						[
 							20,
-							22,
+							21,
 							cr.plugins_.Arr.prototype.exps.At,
 							false,
 							null
@@ -20310,7 +24527,7 @@ false,true,497394394626088
 				],
 				[
 				[
-					36,
+					35,
 					cr.plugins_.Text.prototype.acts.SetText,
 					null,
 					2047400427455314
@@ -20319,7 +24536,7 @@ false,true,497394394626088
 						7,
 						[
 							20,
-							35,
+							34,
 							cr.plugins_.Arr.prototype.exps.At,
 							false,
 							null
@@ -20338,7 +24555,7 @@ false,true,497394394626088
 					]
 				]
 ,				[
-					36,
+					35,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					2316047062391465
@@ -20484,7 +24701,7 @@ false,false,4675431165508499
 							,[
 [
 								20,
-								35,
+								34,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -20522,7 +24739,7 @@ false,false,4675431165508499
 							,[
 [
 								20,
-								18,
+								17,
 								cr.plugins_.TextBox.prototype.exps.Text,
 								true,
 								null
@@ -20533,7 +24750,7 @@ false,false,4675431165508499
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					624299293662427
@@ -20607,7 +24824,7 @@ false,false,4675431165508499
 					]
 				]
 ,				[
-					22,
+					21,
 					cr.plugins_.Arr.prototype.acts.SetX,
 					null,
 					6946149868596714
@@ -20666,6 +24883,36 @@ false,false,4675431165508499
 					]
 					]
 				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					7834653087541982
+					,[
+					[
+						2,
+						["squaremotif1",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
+						]
+					]
+					]
+				]
 				]
 			]
 ,			[
@@ -20687,7 +24934,7 @@ false,false,4675431165508499
 				],
 				[
 				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					9754400302837529
@@ -20699,7 +24946,7 @@ false,false,4675431165508499
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					5175506636728013
@@ -20736,7 +24983,7 @@ false,false,4675431165508499
 					]
 				]
 ,				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					3741594258490182
@@ -20748,7 +24995,7 @@ false,false,4675431165508499
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					625487983911271
@@ -20765,6 +25012,36 @@ false,false,4675431165508499
 						[
 							2,
 							"white"
+						]
+					]
+					]
+				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					2826212828291128
+					,[
+					[
+						2,
+						["sfx5",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
 						]
 					]
 					]
@@ -20809,7 +25086,7 @@ false,false,4675431165508499
 			],
 			[
 			[
-				27,
+				26,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				5335584837102247
@@ -20821,7 +25098,7 @@ false,false,4675431165508499
 				]
 			]
 ,			[
-				25,
+				24,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				4161803256835915
@@ -20833,10 +25110,22 @@ false,false,4675431165508499
 				]
 			]
 ,			[
-				26,
+				25,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				4958683738250722
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				45,
+				cr.plugins_.Sprite.prototype.acts.SetVisible,
+				null,
+				1126133056461658
 				,[
 				[
 					3,
@@ -20879,7 +25168,7 @@ false,false,5126317027488505
 							,[
 [
 								20,
-								35,
+								34,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -20900,7 +25189,7 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					4163798145829595
@@ -20915,7 +25204,7 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetEnabled,
 					null,
 					2508888262807895
@@ -21003,7 +25292,7 @@ false,false,5126317027488505
 				],
 				[
 				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9736372765561958
@@ -21015,7 +25304,7 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					2047510594842183
@@ -21027,10 +25316,22 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					24,
+					23,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					5121397363297082
+					,[
+					[
+						3,
+						1
+					]
+					]
+				]
+,				[
+					44,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					696221669003976
 					,[
 					[
 						3,
@@ -21059,7 +25360,7 @@ false,false,5126317027488505
 				],
 				[
 				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetText,
 					null,
 					2417012438148322
@@ -21074,7 +25375,7 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					73977426069603
@@ -21086,7 +25387,7 @@ false,false,5126317027488505
 					]
 				]
 ,				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9537067955651622
@@ -21165,7 +25466,7 @@ false,false,5689508564511607
 			],
 			[
 			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1699748574758641
@@ -21194,7 +25495,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1828806436136058
@@ -21223,7 +25524,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				9654802004547523
@@ -21252,7 +25553,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				7368896079785583
@@ -21281,7 +25582,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8949817792155838
@@ -21310,7 +25611,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				3920050702862607
@@ -21339,7 +25640,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				9239718141108461
@@ -21368,7 +25669,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1404689486814432
@@ -21397,7 +25698,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				210237090785945
@@ -21426,7 +25727,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4069810458674262
@@ -21455,7 +25756,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				2326330084516982
@@ -21484,7 +25785,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				1137276838104407
@@ -21513,7 +25814,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				5159769092149393
@@ -21542,7 +25843,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				4651546597350907
@@ -21558,7 +25859,7 @@ false,false,5689508564511607
 					0,
 					[
 						0,
-						0
+						1
 					]
 				]
 ,				[
@@ -21571,7 +25872,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				5274254989397592
@@ -21600,7 +25901,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				3106045063225323
@@ -21629,7 +25930,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				8700508710519969
@@ -21658,7 +25959,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				9035548174473725
@@ -21687,7 +25988,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				5343275443061993
@@ -21716,7 +26017,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				38,
+				37,
 				cr.plugins_.Arr.prototype.acts.SetXY,
 				null,
 				7985446797433763
@@ -21744,6 +26045,270 @@ false,false,5689508564511607
 				]
 				]
 			]
+,			[
+				7,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				2589012767439065
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				36,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9527156728331037
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				26,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				92844780633971
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				15,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				1165486581819469
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				22,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5384902998711426
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				24,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				5098213550668541
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				23,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				3528278596344446
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
+,			[
+				18,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				3697445205379712
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				35,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				8140485717368524
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				20,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9132679705314574
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				3,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				9913918496468557
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				25,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				7355530015740825
+				,[
+				[
+					1,
+					[
+						2,
+						"Oswald"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Oswald"
+					]
+				]
+				]
+			]
 			]
 		]
 ,		[
@@ -21765,7 +26330,7 @@ false,false,5689508564511607
 			],
 			[
 			[
-				21,
+				20,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				6360834947191025
@@ -21780,7 +26345,7 @@ false,false,5689508564511607
 				]
 			]
 ,			[
-				19,
+				18,
 				cr.plugins_.Text.prototype.acts.SetText,
 				null,
 				2982434830910751
@@ -21910,7 +26475,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					6684730454894452
@@ -21922,7 +26487,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					25,
+					24,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					2296598259774521
@@ -21934,7 +26499,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					5961246369628597
@@ -21946,7 +26511,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					24,
+					23,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9147225576792173
@@ -21958,7 +26523,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					26,
+					25,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					4064157531876071
@@ -22008,7 +26573,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					6545918208938193
@@ -22023,10 +26588,46 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					18,
+					17,
+					cr.plugins_.TextBox.prototype.acts.SetEnabled,
+					null,
+					6812454468263638
+					,[
+					[
+						3,
+						1
+					]
+					]
+				]
+,				[
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetFocus,
 					null,
 					3991011246937759
+				]
+,				[
+					45,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					6929299170428472
+					,[
+					[
+						3,
+						0
+					]
+					]
+				]
+,				[
+					44,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					1398323286986757
+					,[
+					[
+						3,
+						0
+					]
+					]
 				]
 				]
 			]
@@ -22060,7 +26661,7 @@ false,false,5689508564511607
 						7,
 						[
 							20,
-							22,
+							21,
 							cr.plugins_.Arr.prototype.exps.At,
 							false,
 							null
@@ -22133,7 +26734,7 @@ false,false,5689508564511607
 				],
 				[
 				[
-					36,
+					35,
 					cr.plugins_.Text.prototype.acts.SetText,
 					null,
 					6648502596077632
@@ -22142,7 +26743,7 @@ false,false,5689508564511607
 						7,
 						[
 							20,
-							38,
+							37,
 							cr.plugins_.Arr.prototype.exps.At,
 							false,
 							null
@@ -22161,7 +26762,7 @@ false,false,5689508564511607
 					]
 				]
 ,				[
-					36,
+					35,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					7714251461026605
@@ -22307,7 +26908,7 @@ false,false,2008085699613973
 							,[
 [
 								20,
-								38,
+								37,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -22345,7 +26946,7 @@ false,false,2008085699613973
 							,[
 [
 								20,
-								18,
+								17,
 								cr.plugins_.TextBox.prototype.exps.Text,
 								true,
 								null
@@ -22356,7 +26957,7 @@ false,false,2008085699613973
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					4901317630893618
@@ -22430,7 +27031,7 @@ false,false,2008085699613973
 					]
 				]
 ,				[
-					22,
+					21,
 					cr.plugins_.Arr.prototype.acts.SetX,
 					null,
 					2276539643135301
@@ -22489,6 +27090,36 @@ false,false,2008085699613973
 					]
 					]
 				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					170047208885461
+					,[
+					[
+						2,
+						["squaremotif1",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
+						]
+					]
+					]
+				]
 				]
 			]
 ,			[
@@ -22510,7 +27141,7 @@ false,false,2008085699613973
 				],
 				[
 				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5722903457216461
@@ -22522,7 +27153,7 @@ false,false,2008085699613973
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					2289914327324493
@@ -22559,7 +27190,7 @@ false,false,2008085699613973
 					]
 				]
 ,				[
-					33,
+					32,
 					cr.plugins_.Sprite.prototype.acts.SetVisible,
 					null,
 					5361866160447864
@@ -22571,7 +27202,7 @@ false,false,2008085699613973
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetCSSStyle,
 					null,
 					2186234104352715
@@ -22588,6 +27219,36 @@ false,false,2008085699613973
 						[
 							2,
 							"white"
+						]
+					]
+					]
+				]
+,				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					5487349021798677
+					,[
+					[
+						2,
+						["sfx5",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
 						]
 					]
 					]
@@ -22632,7 +27293,7 @@ false,false,2008085699613973
 			],
 			[
 			[
-				27,
+				26,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				9570535902509982
@@ -22644,7 +27305,7 @@ false,false,2008085699613973
 				]
 			]
 ,			[
-				25,
+				24,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				5211798878075333
@@ -22656,10 +27317,22 @@ false,false,2008085699613973
 				]
 			]
 ,			[
-				26,
+				25,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				3674383680838668
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				45,
+				cr.plugins_.Sprite.prototype.acts.SetVisible,
+				null,
+				3832798614184448
 				,[
 				[
 					3,
@@ -22702,7 +27375,7 @@ false,false,3794067987997189
 							,[
 [
 								20,
-								38,
+								37,
 								cr.plugins_.Arr.prototype.exps.At,
 								false,
 								null
@@ -22723,7 +27396,7 @@ false,false,3794067987997189
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetText,
 					null,
 					6365773536912904
@@ -22738,7 +27411,7 @@ false,false,3794067987997189
 					]
 				]
 ,				[
-					18,
+					17,
 					cr.plugins_.TextBox.prototype.acts.SetEnabled,
 					null,
 					374914308490253
@@ -22826,7 +27499,7 @@ false,false,3794067987997189
 				],
 				[
 				[
-					27,
+					26,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					5482095740469349
@@ -22838,7 +27511,7 @@ false,false,3794067987997189
 					]
 				]
 ,				[
-					23,
+					22,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					3680279868841166
@@ -22850,10 +27523,22 @@ false,false,3794067987997189
 					]
 				]
 ,				[
-					24,
+					23,
 					cr.plugins_.Text.prototype.acts.SetVisible,
 					null,
 					9932776526326554
+					,[
+					[
+						3,
+						1
+					]
+					]
+				]
+,				[
+					44,
+					cr.plugins_.Sprite.prototype.acts.SetVisible,
+					null,
+					1326901672666975
 					,[
 					[
 						3,
@@ -22926,6 +27611,12 @@ false,false,3794067987997189
 				null,
 				5969606942977875
 			]
+,			[
+				21,
+				cr.plugins_.Arr.prototype.acts.Clear,
+				null,
+				6814064493550842
+			]
 			]
 		]
 ,		[
@@ -22954,7 +27645,7 @@ false,false,3794067987997189
 				]
 ,				[
 					4,
-					10
+					42
 				]
 				]
 			]
@@ -23000,12 +27691,12 @@ false,false,3794067987997189
 				]
 ,				[
 					4,
-					27
+					26
 				]
 				]
 			]
 ,			[
-				27,
+				26,
 				cr.plugins_.Text.prototype.cnds.IsVisible,
 				null,
 				0,
@@ -23056,12 +27747,12 @@ false,false,3794067987997189
 				]
 ,				[
 					4,
-					16
+					15
 				]
 				]
 			]
 ,			[
-				16,
+				15,
 				cr.plugins_.Text.prototype.cnds.IsVisible,
 				null,
 				0,
@@ -23073,7 +27764,7 @@ false,false,3794067987997189
 			],
 			[
 			[
-				16,
+				15,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				879672749614437
@@ -23085,7 +27776,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				37,
+				36,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				5390304778682335
@@ -23097,7 +27788,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				15,
+				14,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				6416245292173177
@@ -23109,7 +27800,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				34,
+				33,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				9605014274315609
@@ -23121,7 +27812,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				20,
+				19,
 				cr.plugins_.Sprite.prototype.acts.SetVisible,
 				null,
 				5941788583903878
@@ -23133,7 +27824,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				19,
+				18,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				7787527056831364
@@ -23145,7 +27836,7 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				18,
+				17,
 				cr.plugins_.TextBox.prototype.acts.SetVisible,
 				null,
 				3060291241818974
@@ -23157,13 +27848,25 @@ false,false,3794067987997189
 				]
 			]
 ,			[
-				18,
+				17,
 				cr.plugins_.TextBox.prototype.acts.SetFocus,
 				null,
 				3558509688359439
 			]
 ,			[
-				21,
+				41,
+				cr.plugins_.Sprite.prototype.acts.SetVisible,
+				null,
+				4192331421237834
+				,[
+				[
+					3,
+					1
+				]
+				]
+			]
+,			[
+				20,
 				cr.plugins_.Text.prototype.acts.SetVisible,
 				null,
 				2942917591924075
@@ -23352,6 +28055,36 @@ false,false,3794067987997189
 				],
 				[
 				[
+					43,
+					cr.plugins_.Audio.prototype.acts.Play,
+					null,
+					4904891028247188
+					,[
+					[
+						2,
+						["sfx5",false]
+					]
+,					[
+						3,
+						0
+					]
+,					[
+						0,
+						[
+							0,
+							-10
+						]
+					]
+,					[
+						1,
+						[
+							2,
+							"fx"
+						]
+					]
+					]
+				]
+,				[
 					-1,
 					cr.system_object.prototype.acts.SetVar,
 					null,
@@ -23419,12 +28152,12 @@ false,false,3794067987997189
 				]
 ,				[
 					4,
-					24
+					23
 				]
 				]
 			]
 ,			[
-				24,
+				23,
 				cr.plugins_.Text.prototype.cnds.IsVisible,
 				null,
 				0,
@@ -23482,12 +28215,12 @@ false,false,3794067987997189
 				]
 ,				[
 					4,
-					26
+					25
 				]
 				]
 			]
 ,			[
-				26,
+				25,
 				cr.plugins_.Text.prototype.cnds.IsVisible,
 				null,
 				0,
@@ -23528,6 +28261,70 @@ false,false,3794067987997189
 			2,
 			"Common"
 		]
+,		[
+			0,
+			null,
+			false,
+			9326515104961881,
+			[
+			[
+				-1,
+				cr.system_object.prototype.cnds.OnLayoutStart,
+				null,
+				1,
+				false,
+				false,
+				false,
+				9797488436137012
+			]
+			],
+			[
+			[
+				39,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				460844466844889
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+,			[
+				40,
+				cr.plugins_.Text.prototype.acts.SetWebFont,
+				null,
+				8700634523814319
+				,[
+				[
+					1,
+					[
+						2,
+						"Kite One"
+					]
+				]
+,				[
+					1,
+					[
+						2,
+						"http://fonts.googleapis.com/css?family=Kite+One"
+					]
+				]
+				]
+			]
+			]
+		]
 		]
 	]
 	],
@@ -23535,7 +28332,7 @@ false,false,3794067987997189
 	false,
 	640,
 	480,
-	4,
+	5,
 	true,
 	true,
 	true,
@@ -23544,7 +28341,7 @@ false,false,3794067987997189
 	false,
 	0,
 	false,
-	74,
+	85,
 	false,
 	[
 	]
